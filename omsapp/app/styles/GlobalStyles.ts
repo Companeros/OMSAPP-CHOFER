@@ -10,7 +10,7 @@ export const Color = {
     aqua_800: "#0F5A51",
     aqua_900: "#0C453E",
     light_gray: "#F1F1F1",
-    gray: "#6A6F74",
+    gray: "#6A6F74", dim_gray: "#D9D9D9"
 }
 
 export const FontSize = {
