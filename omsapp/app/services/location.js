@@ -22,5 +22,5 @@ export const startLocation = async () => {
 
 export const stopLocation = async () => {
   await Location.stopLocationUpdatesAsync(LOCATION_TASK_NAME);
-  console.log("Se acaba de terminar la cosa");
+  console.log("La tarea de transmisión de información se ha detenido.");
 };
