@@ -1,14 +1,23 @@
-// PerfilScreen.js
-import React from "react";
-import { View, Text, StyleSheet } from "react-native";
-import { Color, FontSize } from "../styles/GlobalStyles";
+import React, { useContext } from "react"; // Importa useContext desde React
+import { View, Text, StyleSheet, Button } from "react-native";
+import { UserContext } from '../../UserContext';
 
-export const PerfilScreen = () => {
-  // Simula información de usuario
+
+export const PerfilScreen = ({ navigation }) => {
+ 
+  const {user} = useContext(UserContext); // Accede a las propiedades del contexto
+
+  console.log(user.tittle);
+
   const usuario = {
     nombre: "John",
     apellido: "Doe",
     licencia: "1234567890",
+  };
+
+  const handleCerrarSesion = () => {
+    navigation.navigate("Login"); // Redirige a la pantalla HomeScreen
+
   };
 
   return (
@@ -17,7 +26,7 @@ export const PerfilScreen = () => {
         <Text style={styles.title}>Perfil de Usuario</Text>
         <View style={styles.userInfo}>
           <Text style={styles.label}>Nombre:</Text>
-          <Text style={styles.value}>{usuario.nombre}</Text>
+          <Text style={styles.value}>{user.tittle}</Text>
         </View>
         <View style={styles.userInfo}>
           <Text style={styles.label}>Apellido:</Text>
@@ -27,10 +36,16 @@ export const PerfilScreen = () => {
           <Text style={styles.label}>Licencia:</Text>
           <Text style={styles.value}>{usuario.licencia}</Text>
         </View>
+        <Button
+          title="Cerrar Sesión"
+          onPress={handleCerrarSesion}
+          color="red"
+        />
       </View>
     </View>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: {
@@ -49,7 +64,7 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
   },
   title: {
-    fontSize: FontSize.header,
+    fontSize: 24,
     fontWeight: "bold",
     marginBottom: 20,
     textAlign: "center",
@@ -60,11 +75,11 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   label: {
-    fontSize: FontSize.normal,
+    fontSize: 16,
     fontWeight: "bold",
   },
   value: {
-    fontSize: FontSize.normal,
+    fontSize: 16,
   },
 });
 

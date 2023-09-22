@@ -6,6 +6,7 @@ import EmailInput from "../molecules/EmailInput";
 import { Color, FontSize } from "../styles/GlobalStyles";
 import axios from 'axios';
 import { useNavigation } from '@react-navigation/native';
+import { useUser } from "../../UserContext"; // Importa useUser para acceder al contexto
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -13,6 +14,7 @@ const Login = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [credentialsValid, setCredentialsValid] = useState(true);
   const navigation = useNavigation(); // Obtiene el objeto de navegación
+  const { login, logout } = useUser(); // Obtén la función login y logout del contexto
 
   const handleLogin = async () => {
     try {
@@ -36,6 +38,8 @@ const Login = () => {
   
       if (response.status === 200) {
         setCredentialsValid(true);
+        login(response.data.userinfo); // Guarda la información del usuario en el contexto
+        console.log()
         setModalVisible(true);
       } else {
         setCredentialsValid(false);
@@ -47,10 +51,16 @@ const Login = () => {
       setModalVisible(true);
     }
   };
-  const navigateToHomeScreen = () => {
-    navigation.navigate("HomeScreen"); // Redirige a la pantalla HomeScreen
+
+  const handleLogout = () => {
+    logout(); // Cierra la sesión y limpia la información del usuario
   };
 
+  const navigateToHomeScreen = () => {
+    setEmail(""); // Establece el campo de correo electrónico en blanco
+    setPassword(""); // Establece el campo de contraseña en blanco
+    navigation.navigate("Main"); // Redirige a la pantalla HomeScreen
+  };
   return (
     <View style={styles.container}>
       <Image
@@ -96,12 +106,12 @@ const Login = () => {
                   style={[styles.modalButton, { backgroundColor: Color.aqua_500 }]}
                   onPress={navigateToHomeScreen} // Redirige al HomeScreen
                   // Puedes redirigir al HomeScreen o la pantalla que desees
-                  
                 >
                   <Text style={[styles.modalButtonText, { color: "white" }]}>
                     Continuar
                   </Text>
                 </TouchableOpacity>
+              
               </>
             ) : (
               <>
@@ -127,6 +137,7 @@ const Login = () => {
     </View>
   );
 };
+
 const styles = StyleSheet.create({
   errorText: {
     color: "red",
@@ -158,7 +169,8 @@ const styles = StyleSheet.create({
     bottom: 0,
   },
   title: { fontSize: FontSize.header, marginBottom: 30 },
-  content: { justifyContent: "space-between" },modalView: {
+  content: { justifyContent: "space-between" },
+  modalView: {
     margin: 20,
     backgroundColor: "white",
     borderRadius: 20,
@@ -196,6 +208,5 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
 });
-
 
 export default Login;
