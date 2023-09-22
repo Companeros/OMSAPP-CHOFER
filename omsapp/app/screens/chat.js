@@ -1,8 +1,9 @@
 import React, { Component } from 'react';
 import { View, Text, Button, StyleSheet } from 'react-native';
 import * as signalR from '@microsoft/signalr';
+import * as Location from 'expo-location';
 
-class SignalRClient extends Component {
+export class SignalRClient extends Component {
   constructor(props) {
     super(props);
 
@@ -10,24 +11,30 @@ class SignalRClient extends Component {
       connection: null,
       isConnectionActive: false,
     };
+
+    this.coordinatesInterval = null; // Variable para el intervalo
   }
 
-  componentDidMount() {
+  async componentDidMount() {
     const connection = new signalR.HubConnectionBuilder()
       .withUrl('https://omsappapi.azurewebsites.net/Hubs/ChatHub')
       .build();
 
-    this.setState({ connection }, () => {
-      this.state.connection.start()
+    this.setState({ connection }, async () => {
+      await this.state.connection.start()
         .then(() => {
           console.log('Conexión establecida desde la Aplicación A.');
           this.setState({ isConnectionActive: true });
-          this.sendCoordinatesToServer();
+          this.startCoordinatesInterval(); // Iniciar el envío de coordenadas cada 3 segundos
         })
         .catch((error) => {
           console.error('Error al iniciar la conexión:', error);
         });
     });
+  }
+
+  componentWillUnmount() {
+    this.stopCoordinatesInterval(); // Detener el intervalo cuando se desmonta el componente
   }
 
   render() {
@@ -44,49 +51,65 @@ class SignalRClient extends Component {
     );
   }
 
-  startConnection = () => {
+  startConnection = async () => {
     const { connection } = this.state;
 
-    connection.start()
+    await connection.start()
       .then(() => {
         console.log('Conexión establecida desde la Aplicación A.');
         this.setState({ isConnectionActive: true });
-        this.sendCoordinatesToServer();
+        this.startCoordinatesInterval(); // Iniciar el envío de coordenadas cada 3 segundos
       })
       .catch((error) => {
         console.error('Error al iniciar la conexión:', error);
       });
   };
 
-  stopConnection = () => {
+  stopConnection = async () => {
     const { connection } = this.state;
 
-    connection.stop()
+    await connection.stop()
       .then(() => {
         console.log('Conexión cerrada desde la Aplicación A.');
         this.setState({ isConnectionActive: false });
+        this.stopCoordinatesInterval(); // Detener el envío de coordenadas cuando se detiene la conexión
       })
       .catch((error) => {
         console.error('Error al detener la conexión:', error);
       });
   };
 
-  sendCoordinatesToServer = () => {
+  startCoordinatesInterval = () => {
+    this.coordinatesInterval = setInterval(this.sendCoordinatesToServer, 3000); // Intervalo de 3 segundos
+  };
+
+  stopCoordinatesInterval = () => {
+    if (this.coordinatesInterval) {
+      clearInterval(this.coordinatesInterval); // Detener el intervalo si está en marcha
+    }
+  };
+
+  sendCoordinatesToServer = async () => {
     const { connection } = this.state;
 
-    for (let i = 0; i < 100; i++) {
-      const latitude = Math.random() * (90.0 - (-90.0)) - 90.0;
-      const longitude = Math.random() * (180.0 - (-180.0)) - 180.0;
-      const message = `Latitud: ${latitude}, Longitud: ${longitude}`;
-
-      connection.invoke('SendMessageToB', message)
-        .then(() => {
-          console.log(`Mensaje enviado desde la Aplicación A: ${message}`);
-        })
-        .catch((error) => {
-          console.error('Error al enviar el mensaje:', error);
-        });
+    let { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') {
+      console.error('Permiso de ubicación denegado');
+      return;
     }
+
+    let location = await Location.getCurrentPositionAsync({});
+    const latitude = location.coords.latitude;
+    const longitude = location.coords.longitude;
+    const message = `Latitud: ${latitude}, Longitud: ${longitude}`;
+
+    connection.invoke('SendMessageToB', message)
+      .then(() => {
+        console.log(`Mensaje enviado desde la Aplicación A: ${message}`);
+      })
+      .catch((error) => {
+        console.error('Error al enviar el mensaje:', error);
+      });
   };
 }
 
