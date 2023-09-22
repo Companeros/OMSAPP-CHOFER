@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import HomeScreen from "./app/screens/HomeScreen";
 import Login from "./app/screens/Login";
 import {SignalRClient} from './app/screens/chat';
+import {PerfilScreen} from './app/screens/PerfilScreen';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 

@@ -6,7 +6,7 @@ import SubmitButton from "../molecules/SubmitButton";
 import { HubConnectionBuilder, HubConnectionState } from '@microsoft/signalr';
 import * as Location from 'expo-location';
 
-const HomeScreen = () => {
+export const HomeScreen = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [locationActive, setLocationActive] = useState(false);
   const [connection, setConnection] = useState(null);
