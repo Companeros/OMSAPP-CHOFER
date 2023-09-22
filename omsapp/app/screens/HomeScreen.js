@@ -1,13 +1,107 @@
+import React, { useState, useEffect } from "react";
 import { Text, StyleSheet, View, Modal } from "react-native";
-import React, { useState } from "react";
-import { startLocation, stopLocation } from "../services/location";
 import { Button } from "../atoms/Button";
 import { Color, FontSize } from "../styles/GlobalStyles";
 import SubmitButton from "../molecules/SubmitButton";
+import { HubConnectionBuilder, HubConnectionState } from '@microsoft/signalr';
+import * as Location from 'expo-location';
 
 const HomeScreen = () => {
   const [modalVisible, setModalVisible] = useState(false);
-  const [locationActive, setlocationActive] = useState(false);
+  const [locationActive, setLocationActive] = useState(false);
+  const [connection, setConnection] = useState(null);
+  const [intervalId, setIntervalId] = useState(null);
+  const [isTurnStarted, setIsTurnStarted] = useState(false);
+
+  useEffect(() => {
+    const createConnection = async () => {
+      if (connection && connection.state === HubConnectionState.Disconnected) {
+        try {
+          await connection.start();
+          console.log('Conexión SignalR establecida con éxito.');
+        } catch (error) {
+          console.error('Error al iniciar la conexión SignalR:', error);
+        }
+      } else if (!connection) {
+        const hubConnection = new HubConnectionBuilder()
+          .withUrl('https://omsappapi.azurewebsites.net/Hubs/ChatHub')
+          .build();
+
+        hubConnection.on('ReceiveCoordinates', (message) => {
+          console.log(`Coordenadas recibidas desde el servidor: ${message}`);
+        });
+
+        setConnection(hubConnection);
+
+        try {
+          await hubConnection.start();
+          console.log('Conexión SignalR establecida con éxito.');
+        } catch (error) {
+          console.error('Error al iniciar la conexión SignalR:', error);
+        }
+      } else {
+        console.warn('La conexión ya está en un estado diferente a Disconnected.');
+      }
+    };
+
+    createConnection();
+
+    return () => {
+      if (connection && connection.state === HubConnectionState.Connected) {
+        connection.stop();
+        console.log('Conexión SignalR detenida.');
+      }
+    };
+  }, [connection]);
+
+  const sendCoordinatesToServer = async () => {
+    let { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') {
+      console.error('Permiso de ubicación denegado');
+      return;
+    }
+
+    const newIntervalId = setInterval(async () => {
+      let location = await Location.getCurrentPositionAsync({});
+      const latitude = location.coords.latitude;
+      const longitude = location.coords.longitude;
+      const message = `Latitud: ${latitude}, Longitud: ${longitude}`;
+
+      if (connection && connection.state === HubConnectionState.Connected) {
+        connection.invoke('SendMessageToB', message)
+          .then(() => {
+            console.log(`Coordenadas enviadas al servidor: ${message}`);
+          })
+          .catch((error) => {
+            console.error('Error al enviar las coordenadas:', error);
+          });
+      } else {
+        console.error('La conexión SignalR no está en estado Connected para enviar coordenadas.');
+      }
+    }, 3000); // Enviar coordenadas cada 3 segundos
+
+    setIntervalId(newIntervalId);
+    setIsTurnStarted(true);
+    setModalVisible(false);
+  };
+
+  const stopSendingCoordinates = () => {
+    if (intervalId) {
+      clearInterval(intervalId);
+      setIntervalId(null);
+    }
+    setIsTurnStarted(false);
+  };
+
+  const handleStartTurn = () => {
+    sendCoordinatesToServer();
+    setLocationActive(true);
+  };
+
+  const handleEndTurn = () => {
+    stopSendingCoordinates();
+    setLocationActive(false);
+  };
 
   return (
     <View style={styles.container}>
@@ -16,7 +110,7 @@ const HomeScreen = () => {
         transparent={true}
         visible={modalVisible}
         onRequestClose={() => {
-          setModalVisible(!modalVisible);
+          setModalVisible(false);
         }}
       >
         <View style={styles.centeredView}>
@@ -33,11 +127,7 @@ const HomeScreen = () => {
                 height={50}
                 backgroundColor={Color.aqua_500}
                 textColor="white"
-                onPress={() => {
-                  startLocation();
-                  setlocationActive(!locationActive);
-                  setModalVisible(!modalVisible);
-                }}
+                onPress={handleStartTurn}
               />
             </View>
             <View style={{ marginBottom: 15 }}>
@@ -48,7 +138,7 @@ const HomeScreen = () => {
                 backgroundColor="white"
                 borderWidth={2}
                 onPress={() => {
-                  setModalVisible(!modalVisible);
+                  setModalVisible(false);
                 }}
               />
             </View>
@@ -59,11 +149,11 @@ const HomeScreen = () => {
         <View style={styles.innnerCircle}>
           {!locationActive ? (
             <Button
-              title="Iniciar Turno"
+              title={isTurnStarted ? "Finalizar Turno" : "Iniciar Turno"}
               width={250}
               height={50}
-              backgroundColor={Color.aqua_500}
-              onPress={() => setModalVisible(true)}
+              backgroundColor={isTurnStarted ? Color.red : Color.aqua_500}
+              onPress={isTurnStarted ? handleEndTurn : () => setModalVisible(true)}
               textColor="white"
             />
           ) : (
@@ -72,10 +162,7 @@ const HomeScreen = () => {
               width={250}
               height={50}
               backgroundColor={Color.red}
-              onPress={() => {
-                stopLocation();
-                setlocationActive(!locationActive);
-              }}
+              onPress={handleEndTurn}
               textColor="white"
             />
           )}
@@ -102,7 +189,6 @@ const HomeScreen = () => {
     </View>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
