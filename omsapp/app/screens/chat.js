@@ -80,7 +80,7 @@ export class SignalRClient extends Component {
   };
 
   startCoordinatesInterval = () => {
-    this.coordinatesInterval = setInterval(this.sendCoordinatesToServer, 3000); // Intervalo de 3 segundos
+    this.coordinatesInterval = setInterval(this.sendCoordinatesToServer, 1000); // Intervalo de 3 segundos
   };
 
   stopCoordinatesInterval = () => {
