@@ -29,12 +29,12 @@ export const PerfilScreen = ({ navigation }) => {
           <Text style={styles.value}>{user.tittle}</Text>
         </View>
         <View style={styles.userInfo}>
-          <Text style={styles.label}>Apellido:</Text>
-          <Text style={styles.value}>{usuario.apellido}</Text>
+          <Text style={styles.label}>Numero:</Text>
+          <Text style={styles.value}>{user.personPhone}</Text>
         </View>
         <View style={styles.userInfo}>
           <Text style={styles.label}>Licencia:</Text>
-          <Text style={styles.value}>{usuario.licencia}</Text>
+          <Text style={styles.value}>{user.personLicense}</Text>
         </View>
         <Button
           title="Cerrar Sesión"
