@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useContext } from "react";
-
 import { Text, StyleSheet, View, Modal } from "react-native";
 import { Button } from "../atoms/Button";
 import { Color, FontSize } from "../styles/GlobalStyles";
@@ -15,34 +14,38 @@ export const HomeScreen = () => {
   const [connection, setConnection] = useState(null);
   const [intervalId, setIntervalId] = useState(null);
   const [isTurnStarted, setIsTurnStarted] = useState(false);
-  const {user} = useContext(UserContext); // Accede a las propiedades del contexto
+  const [startButtonTitle, setStartButtonTitle] = useState("Iniciar Turno");
+  const { user } = useContext(UserContext);
 
   const sendRequestToAPI = async (wDay_start_finish) => {
     try {
-      console.log(user.id)
-      console.log(wDay_start_finish)
+      const requestData = {
+        id: 0,
+        wDay_start_finish: wDay_start_finish,
+        person_identification: user.id,
+        wDay_condition: true,
+      };
+      
+      const headers = {
+        'accept': 'text/plain',
+        'Content-Type': 'application/json',
+      };
+
       const response = await axios.post(
         'https://omsappapi.azurewebsites.net/api/WorkingDay/SetWorkingDay',
-        {
-          id: 0,
-          wDay_start_finish: true,
-          person_identification: "RD4354545",
-          wDay_condition: true
-        },
-        {
-          headers: {
-            'accept': 'text/plain',
-            'Content-Type': 'application/json',
-          },
-        }
+        requestData,
+        { headers }
       );
-      console.log(response)
 
       if (response.status === 201) {
         console.log('Solicitud a la API exitosa. Status 201.');
-        // Luego, puedes iniciar la transmisión por SignalR o realizar otras acciones necesarias.
-        // Por ejemplo:
-        // iniciarSignalR();
+        if (connection && connection.state === HubConnectionState.Connected) {
+          // Enviar un mensaje a SignalR después de que la API responda con éxito
+          connection.invoke('SendMessageToB', "Turno iniciado");
+        }
+        setIsTurnStarted(true);
+        setStartButtonTitle("Terminar Turno");
+        setModalVisible(false);
       } else {
         console.log('La solicitud a la API no devolvió un status 201.');
       }
@@ -91,7 +94,6 @@ export const HomeScreen = () => {
       }
     };
   }, [connection]);
-
   const sendCoordinatesToServer = async () => {
     let { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== 'granted') {
@@ -100,23 +102,27 @@ export const HomeScreen = () => {
     }
 
     const newIntervalId = setInterval(async () => {
-      let location = await Location.getCurrentPositionAsync({});
-      const latitude = location.coords.latitude;
-      const longitude = location.coords.longitude;
-      const message = `Latitud: ${latitude}, Longitud: ${longitude}`;
+      try {
+        let location = await Location.getCurrentPositionAsync({});
+        const latitude = location.coords.latitude;
+        const longitude = location.coords.longitude;
+        const message = `Latitud: ${latitude}, Longitud: ${longitude}`;
 
-      if (connection && connection.state === HubConnectionState.Connected) {
-        connection.invoke('SendMessageToB', message)
-          .then(() => {
-            console.log(`Coordenadas enviadas al servidor: ${message}`);
-          })
-          .catch((error) => {
-            console.error('Error al enviar las coordenadas:', error);
-          });
-      } else {
-        console.error('La conexión SignalR no está en estado Connected para enviar coordenadas.');
+        if (connection && connection.state === HubConnectionState.Connected) {
+          connection.invoke('SendMessageToB', message)
+            .then(() => {
+              console.log(`Coordenadas enviadas al servidor: ${message}`);
+            })
+            .catch((error) => {
+              console.error('Error al enviar las coordenadas:', error);
+            });
+        } else {
+          console.error('La conexión SignalR no está en estado Connected para enviar coordenadas.');
+        }
+      } catch (error) {
+        console.error('Error al obtener las coordenadas:', error);
       }
-    }, 3000); // Enviar coordenadas cada 3 segundos
+    }, 1000); // Enviar coordenadas cada 1 segundo
 
     setIntervalId(newIntervalId);
     setIsTurnStarted(true);
@@ -132,16 +138,19 @@ export const HomeScreen = () => {
   };
 
   const handleStartTurn = () => {
-    sendRequestToAPI(true);
+    sendRequestToAPI(true); // Realiza una solicitud a la API
     setLocationActive(true);
+    sendCoordinatesToServer(); // Inicia el envío de coordenadas
   };
 
   const handleEndTurn = () => {
     stopSendingCoordinates();
     sendRequestToAPI(false);
     setLocationActive(false);
+    setStartButtonTitle("Iniciar Turno"); // Cambia el texto del botón de "Terminar Turno" a "Iniciar Turno"
   };
-
+  
+  
   return (
     <View style={styles.container}>
       <Modal
@@ -186,25 +195,14 @@ export const HomeScreen = () => {
       </Modal>
       <View style={styles.outerCircle}>
         <View style={styles.innnerCircle}>
-          {!locationActive ? (
-            <Button
-              title={isTurnStarted ? "Finalizar Turno" : "Iniciar Turno"}
-              width={250}
-              height={50}
-              backgroundColor={isTurnStarted ? Color.red : Color.aqua_500}
-              onPress={isTurnStarted ? handleEndTurn : () => setModalVisible(true)}
-              textColor="white"
-            />
-          ) : (
-            <Button
-              title="Finalizar Turno"
-              width={250}
-              height={50}
-              backgroundColor={Color.red}
-              onPress={handleEndTurn}
-              textColor="white"
-            />
-          )}
+          <Button
+            title={startButtonTitle}
+            width={250}
+            height={50}
+            backgroundColor={isTurnStarted ? Color.red : Color.aqua_500}
+            onPress={isTurnStarted ? handleEndTurn : () => setModalVisible(true)}
+            textColor="white"
+          />
         </View>
       </View>
       <View
