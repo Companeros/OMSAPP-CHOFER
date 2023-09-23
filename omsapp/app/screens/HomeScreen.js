@@ -1,10 +1,13 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
+
 import { Text, StyleSheet, View, Modal } from "react-native";
 import { Button } from "../atoms/Button";
 import { Color, FontSize } from "../styles/GlobalStyles";
 import SubmitButton from "../molecules/SubmitButton";
-import { HubConnectionBuilder, HubConnectionState } from '@microsoft/signalr';
+import axios from 'axios';
 import * as Location from 'expo-location';
+import { HubConnectionBuilder, HubConnectionState } from '@microsoft/signalr';
+import { UserContext } from '../../UserContext';
 
 export const HomeScreen = () => {
   const [modalVisible, setModalVisible] = useState(false);
@@ -12,6 +15,41 @@ export const HomeScreen = () => {
   const [connection, setConnection] = useState(null);
   const [intervalId, setIntervalId] = useState(null);
   const [isTurnStarted, setIsTurnStarted] = useState(false);
+  const {user} = useContext(UserContext); // Accede a las propiedades del contexto
+
+  const sendRequestToAPI = async (wDay_start_finish) => {
+    try {
+      console.log(user.id)
+      console.log(wDay_start_finish)
+      const response = await axios.post(
+        'https://omsappapi.azurewebsites.net/api/WorkingDay/SetWorkingDay',
+        {
+          id: 0,
+          wDay_start_finish: true,
+          person_identification: "RD4354545",
+          wDay_condition: true
+        },
+        {
+          headers: {
+            'accept': 'text/plain',
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      console.log(response)
+
+      if (response.status === 201) {
+        console.log('Solicitud a la API exitosa. Status 201.');
+        // Luego, puedes iniciar la transmisión por SignalR o realizar otras acciones necesarias.
+        // Por ejemplo:
+        // iniciarSignalR();
+      } else {
+        console.log('La solicitud a la API no devolvió un status 201.');
+      }
+    } catch (error) {
+      console.error('Error al realizar la solicitud a la API:', error.message);
+    }
+  };
 
   useEffect(() => {
     const createConnection = async () => {
@@ -94,12 +132,13 @@ export const HomeScreen = () => {
   };
 
   const handleStartTurn = () => {
-    sendCoordinatesToServer();
+    sendRequestToAPI(true);
     setLocationActive(true);
   };
 
   const handleEndTurn = () => {
     stopSendingCoordinates();
+    sendRequestToAPI(false);
     setLocationActive(false);
   };
 
@@ -189,6 +228,7 @@ export const HomeScreen = () => {
     </View>
   );
 };
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,

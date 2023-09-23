@@ -15,7 +15,7 @@ const Login = () => {
   const [credentialsValid, setCredentialsValid] = useState(true);
   const navigation = useNavigation(); // Obtiene el objeto de navegación
   const { login, logout } = useUser(); // Obtén la función login y logout del contexto
-
+  const [message, setMessage] = useState("");
   const handleLogin = async () => {
     try {
       console.log(email);
@@ -36,14 +36,20 @@ const Login = () => {
   
       console.log("esta es la respuesta ", response.data); // Accede a la respuesta en response.data
   
-      if (response.status === 200) {
+      if (response.data.success === true) {
         setCredentialsValid(true);
         login(response.data.userinfo); // Guarda la información del usuario en el contexto
-        console.log()
+    
         setModalVisible(true);
+        console.log(response.data.message)
+        setMessage(response.data.message); // Guarda el mensaje de la API en el estado message
+  
       } else {
         setCredentialsValid(false);
         setModalVisible(true);
+        console.log(response.data.message)
+        setMessage(response.data.message); // Guarda el mensaje de la API en el estado message
+  
       }
     } catch (error) {
       console.error('Error de solicitud:', error);
@@ -73,7 +79,7 @@ const Login = () => {
         <PasswordInput
           value={password}
           onChange={setPassword}
-          placeholder="Password"
+          placeholder=""
         />
         <View style={styles.buttonContainer}>
           <SubmitButton
@@ -100,7 +106,7 @@ const Login = () => {
               <>
                 <Text style={styles.modalTitle}>Inicio de Sesión Exitoso</Text>
                 <Text style={styles.modalText}>
-                  ¡Bienvenido! Su inicio de sesión fue exitoso.
+                  ¡Bienvenido! {message}.
                 </Text>
                 <TouchableOpacity
                   style={[styles.modalButton, { backgroundColor: Color.aqua_500 }]}
@@ -117,7 +123,7 @@ const Login = () => {
               <>
                 <Text style={styles.modalTitle}>Error de Inicio de Sesión</Text>
                 <Text style={styles.modalText}>
-                  Credenciales incorrectas. Por favor, inténtelo nuevamente.
+                {message}. Por favor, inténtelo nuevamente.
                 </Text>
                 <TouchableOpacity
                   style={[styles.modalButton, { backgroundColor: Color.red }]}
