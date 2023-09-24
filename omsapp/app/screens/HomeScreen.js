@@ -7,6 +7,7 @@ import axios from 'axios';
 import * as Location from 'expo-location';
 import { HubConnectionBuilder, HubConnectionState } from '@microsoft/signalr';
 import { UserContext } from '../../UserContext';
+import Toast from "react-native-toast-message";
 
 export const HomeScreen = () => {
   const [modalVisible, setModalVisible] = useState(false);
@@ -19,9 +20,32 @@ export const HomeScreen = () => {
   const { user } = useContext(UserContext);
   const [errorModalVisible, setErrorModalVisible] = useState(false);
 
+  const showSuccessToast = () => {
+    Toast.show({
+      type: "success",
+      text1: "Inicio de sesión correcto",
+      text2: "Se ha iniciado sesión correctamente",
+      visibilityTime: 2000,
+      onHide: () => navigateToHomeScreen(),
+    });
+  };
+
+  const showSErrorToast = () => {
+    Toast.show({
+      type: "error",
+      text1: "Inicio de sesión incorrecto",
+      text2: "Se ha producido un error al iniciar sesión",
+      onShow: () => {
+        // Modificar método de limpiado de campos
+        setEmail("");
+        setPassword("");
+      },
+    });
+  };
+
   const sendRequestToAPI = async (wDay_start_finish) => {
     try {
-      console.log(user.userinfo)
+      console.log(user.userinfo);
       const requestData = {
         id: 0,
         wDay_start_finish: wDay_start_finish,
@@ -30,39 +54,38 @@ export const HomeScreen = () => {
       };
 
       const headers = {
-        'accept': 'text/plain',
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${user.results}`, // Reemplaza YOUR_ACCESS_TOKEN con tu token real
+        accept: "text/plain",
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${user.results}`, // Reemplaza YOUR_ACCESS_TOKEN con tu token real
       };
 
       const response = await axios.post(
-        'https://omsappapi.azurewebsites.net/api/WorkingDay/SetWorkingDay',
+        "https://omsappapi.azurewebsites.net/api/WorkingDay/SetWorkingDay",
         requestData,
         { headers }
       );
-        
-      console.log(response.status)
+
+      console.log(response.status);
       if (response.status === 201) {
-        console.log('Solicitud a la API exitosa. Status 201.');
+        console.log("Solicitud a la API exitosa. Status 201.");
         if (connection && connection.state === HubConnectionState.Connected) {
-          connection.invoke('SendMessageToB', "Turno iniciado");
+          connection.invoke("SendMessageToB", "Turno iniciado");
         }
-        if(isTurnStarted === false){
+        if (isTurnStarted === false) {
           setIsTurnStarted(true);
           setStartButtonTitle("Terminar Turno");
-           
-            setModalVisible(false);
-             sendCoordinatesToServer();
+
+          setModalVisible(false);
+          sendCoordinatesToServer();
         }
-       
       } else {
-        console.log(response.data.singleData.mensaje)
+        console.log(response.data.singleData.mensaje);
         setErrorMessage(response.data.singleData.mensaje);
         setErrorModalVisible(true);
-        console.log('La solicitud a la API no devolvió un status 201.');
+        console.log("La solicitud a la API no devolvió un status 201.");
       }
     } catch (error) {
-      console.error('Error al realizar la solicitud a la API:', error.message);
+      console.error("Error al realizar la solicitud a la API:", error.message);
     }
   };
 
@@ -71,16 +94,16 @@ export const HomeScreen = () => {
       if (connection && connection.state === HubConnectionState.Disconnected) {
         try {
           await connection.start();
-          console.log('Conexión SignalR establecida con éxito.');
+          console.log("Conexión SignalR establecida con éxito.");
         } catch (error) {
-          console.error('Error al iniciar la conexión SignalR:', error);
+          console.error("Error al iniciar la conexión SignalR:", error);
         }
       } else if (!connection) {
         const hubConnection = new HubConnectionBuilder()
-          .withUrl('https://omsappapi.azurewebsites.net/Hubs/ChatHub')
+          .withUrl("https://omsappapi.azurewebsites.net/Hubs/ChatHub")
           .build();
 
-        hubConnection.on('ReceiveCoordinates', (message) => {
+        hubConnection.on("ReceiveCoordinates", (message) => {
           console.log(`Coordenadas recibidas desde el servidor: ${message}`);
         });
 
@@ -88,12 +111,14 @@ export const HomeScreen = () => {
 
         try {
           await hubConnection.start();
-          console.log('Conexión SignalR establecida con éxito.');
+          console.log("Conexión SignalR establecida con éxito.");
         } catch (error) {
-          console.error('Error al iniciar la conexión SignalR:', error);
+          console.error("Error al iniciar la conexión SignalR:", error);
         }
       } else {
-        console.warn('La conexión ya está en un estado diferente a Disconnected.');
+        console.warn(
+          "La conexión ya está en un estado diferente a Disconnected."
+        );
       }
     };
 
@@ -102,15 +127,15 @@ export const HomeScreen = () => {
     return () => {
       if (connection && connection.state === HubConnectionState.Connected) {
         connection.stop();
-        console.log('Conexión SignalR detenida.');
+        console.log("Conexión SignalR detenida.");
       }
     };
   }, [connection]);
 
   const sendCoordinatesToServer = async () => {
     let { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== 'granted') {
-      console.error('Permiso de ubicación denegado');
+    if (status !== "granted") {
+      console.error("Permiso de ubicación denegado");
       return;
     }
 
@@ -122,18 +147,21 @@ export const HomeScreen = () => {
         const message = `Latitud: ${latitude}, Longitud: ${longitude}`;
 
         if (connection && connection.state === HubConnectionState.Connected) {
-          connection.invoke('SendMessageToB', message)
+          connection
+            .invoke("SendMessageToB", message)
             .then(() => {
               console.log(`Coordenadas enviadas al servidor: ${message}`);
             })
             .catch((error) => {
-              console.error('Error al enviar las coordenadas:', error);
+              console.error("Error al enviar las coordenadas:", error);
             });
         } else {
-          console.error('La conexión SignalR no está en estado Connected para enviar coordenadas.');
+          console.error(
+            "La conexión SignalR no está en estado Connected para enviar coordenadas."
+          );
         }
       } catch (error) {
-        console.error('Error al obtener las coordenadas:', error);
+        console.error("Error al obtener las coordenadas:", error);
       }
     }, 1000);
 
@@ -151,13 +179,13 @@ export const HomeScreen = () => {
   };
 
   const handleStartTurn = () => {
-    console.log("Iniciar turno")
+    console.log("Iniciar turno");
     sendRequestToAPI(true);
     setLocationActive(true);
   };
 
   const handleEndTurn = () => {
-    console.log("Terminar turno")
+    console.log("Terminar turno");
     stopSendingCoordinates();
     sendRequestToAPI(false);
     setLocationActive(false);
@@ -190,7 +218,7 @@ export const HomeScreen = () => {
                     onPress={() => {
                       setModalVisible(false);
                       setErrorModalVisible(false);
-                      setErrorMessage("")
+                      setErrorMessage("");
                     }}
                   />
                 </View>
@@ -236,7 +264,9 @@ export const HomeScreen = () => {
             width={250}
             height={50}
             backgroundColor={isTurnStarted ? Color.red : Color.aqua_500}
-            onPress={isTurnStarted ? handleEndTurn : () => setModalVisible(true)}
+            onPress={
+              isTurnStarted ? handleEndTurn : () => setModalVisible(true)
+            }
             textColor="white"
           />
         </View>
@@ -259,6 +289,7 @@ export const HomeScreen = () => {
           { backgroundColor: Color.light_gray, bottom: 200, left: 250 },
         ]}
       />
+      <Toast />
     </View>
   );
 };

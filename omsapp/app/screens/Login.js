@@ -6,55 +6,52 @@ import EmailInput from "../molecules/EmailInput";
 import { Color, FontSize } from "../styles/GlobalStyles";
 import axios from 'axios';
 import { useNavigation } from '@react-navigation/native';
+import Toast from "react-native-toast-message";
 import { useUser } from "../../UserContext"; // Importa useUser para acceder al contexto
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [modalVisible, setModalVisible] = useState(false);
   const [credentialsValid, setCredentialsValid] = useState(true);
   const navigation = useNavigation(); // Obtiene el objeto de navegación
   const { login, logout } = useUser(); // Obtén la función login y logout del contexto
   const [message, setMessage] = useState("");
+
   const handleLogin = async () => {
     try {
-      console.log(email);
-      console.log(password);
       const response = await axios.post(
-        'https://omsappapi.azurewebsites.net/api/Users/login',
+        "https://omsappapi.azurewebsites.net/api/Users/login",
         null, // No necesitas enviar datos en el cuerpo, ya que los parámetros están en la URL
         {
           params: {
             user: email,
-            password: password
+            password: password,
           },
           headers: {
-            'accept': '*/*'
-          }
+            accept: "*/*",
+          },
         }
       );
-  
+
       console.log("esta es la respuesta ", response.data); // Accede a la respuesta en response.data
-  
+
       if (response.data.success === true) {
         setCredentialsValid(true);
         login(response.data); // Guarda la información del usuario en el contexto
-    
-        setModalVisible(true);
-        console.log(response.data.message)
+
+        showSuccessToast();
+        console.log(response.data.message);
         setMessage(response.data.message); // Guarda el mensaje de la API en el estado message
-  
       } else {
         setCredentialsValid(false);
-        setModalVisible(true);
-        console.log(response.data.message)
+        showSErrorToast();
+        console.log(response.data.message);
         setMessage(response.data.message); // Guarda el mensaje de la API en el estado message
-  
       }
     } catch (error) {
-      console.error('Error de solicitud:', error);
+      console.error("Error de solicitud:", error);
       setCredentialsValid(false);
-      setModalVisible(true);
+      showSErrorToast();
     }
   };
 
@@ -92,56 +89,7 @@ const Login = () => {
         </View>
       </View>
       <View style={styles.footer}></View>
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => {
-          setModalVisible(false);
-        }}
-      >
-        <View style={styles.centeredView}>
-          <View style={styles.modalView}>
-            {credentialsValid ? (
-              <>
-                <Text style={styles.modalTitle}>Inicio de Sesión Exitoso</Text>
-                <Text style={styles.modalText}>
-                  ¡Bienvenido! {message}.
-                </Text>
-                <TouchableOpacity
-                  style={[styles.modalButton, { backgroundColor: Color.aqua_500 }]}
-                   onPress={() => {
-                    setModalVisible(false);
-                    navigateToHomeScreen()
-                  }}
-                >
-                  <Text style={[styles.modalButtonText, { color: "white" }]}>
-                    Continuar
-                  </Text>
-                </TouchableOpacity>
-              
-              </>
-            ) : (
-              <>
-                <Text style={styles.modalTitle}>Error de Inicio de Sesión</Text>
-                <Text style={styles.modalText}>
-                {message}. Por favor, inténtelo nuevamente.
-                </Text>
-                <TouchableOpacity
-                  style={[styles.modalButton, { backgroundColor: Color.red }]}
-                  onPress={() => {
-                    setModalVisible(false);
-                  }}
-                >
-                  <Text style={[styles.modalButtonText, { color: "white" }]}>
-                    Cerrar
-                  </Text>
-                </TouchableOpacity>
-              </>
-            )}
-          </View>
-        </View>
-      </Modal>
+      <Toast />
     </View>
   );
 };
