@@ -2,8 +2,11 @@ import { Text, StyleSheet, View, Image } from "react-native";
 import React, { Component } from "react";
 import { Color, FontSize } from "../styles/GlobalStyles";
 import SubmitButton from "../molecules/SubmitButton";
-
+import { useNavigation } from '@react-navigation/native';
+ 
 const StartScreen = () => {
+  const navigation = useNavigation(); // Obtiene el objeto de navegación
+
   return (
     <View style={styles.container}>
       <View
@@ -31,7 +34,8 @@ const StartScreen = () => {
             backgroundColor="white"
             width={"100%"}
             textColor={Color.aqua_500}
-            onPress={() => {}}
+            onPress={() => {    navigation.navigate("Login"); // Redirige a la pantalla HomeScreen
+          }}
           />
           <View
             style={[
