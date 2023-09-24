@@ -38,7 +38,7 @@ const Login = () => {
   
       if (response.data.success === true) {
         setCredentialsValid(true);
-        login(response.data.userinfo); // Guarda la información del usuario en el contexto
+        login(response.data); // Guarda la información del usuario en el contexto
     
         setModalVisible(true);
         console.log(response.data.message)
@@ -79,7 +79,7 @@ const Login = () => {
         <PasswordInput
           value={password}
           onChange={setPassword}
-          placeholder=""
+          placeholder="Password"
         />
         <View style={styles.buttonContainer}>
           <SubmitButton

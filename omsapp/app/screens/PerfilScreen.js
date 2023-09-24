@@ -16,7 +16,7 @@ export const PerfilScreen = ({ navigation }) => {
   };
 
   const handleCerrarSesion = () => {
-    navigation.navigate("Login"); // Redirige a la pantalla HomeScreen
+    navigation.navigate("StartScreen"); // Redirige a la pantalla HomeScreen
 
   };
 
@@ -26,15 +26,15 @@ export const PerfilScreen = ({ navigation }) => {
         <Text style={styles.title}>Perfil de Usuario</Text>
         <View style={styles.userInfo}>
           <Text style={styles.label}>Nombre:</Text>
-          <Text style={styles.value}>{user.tittle}</Text>
+          <Text style={styles.value}>{user.userinfo.tittle}</Text>
         </View>
         <View style={styles.userInfo}>
           <Text style={styles.label}>Numero:</Text>
-          <Text style={styles.value}>{user.personPhone}</Text>
+          <Text style={styles.value}>{user.userinfo.personPhone}</Text>
         </View>
         <View style={styles.userInfo}>
           <Text style={styles.label}>Licencia:</Text>
-          <Text style={styles.value}>{user.personLicense}</Text>
+          <Text style={styles.value}>{user.userinfo.personLicense}</Text>
         </View>
         <Button
           title="Cerrar Sesión"

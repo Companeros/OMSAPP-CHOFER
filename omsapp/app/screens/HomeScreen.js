@@ -21,16 +21,18 @@ export const HomeScreen = () => {
 
   const sendRequestToAPI = async (wDay_start_finish) => {
     try {
+      console.log(user.userinfo)
       const requestData = {
         id: 0,
         wDay_start_finish: wDay_start_finish,
-        person_identification: user.id,
+        person_identification: user.userinfo.id,
         wDay_condition: true,
       };
 
       const headers = {
         'accept': 'text/plain',
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${user.results}`, // Reemplaza YOUR_ACCESS_TOKEN con tu token real
       };
 
       const response = await axios.post(
@@ -38,16 +40,21 @@ export const HomeScreen = () => {
         requestData,
         { headers }
       );
-
+        
+      console.log(response.status)
       if (response.status === 201) {
         console.log('Solicitud a la API exitosa. Status 201.');
         if (connection && connection.state === HubConnectionState.Connected) {
           connection.invoke('SendMessageToB', "Turno iniciado");
         }
-        setIsTurnStarted(true);
-        setStartButtonTitle("Terminar Turno");
-        setModalVisible(false);
-        sendCoordinatesToServer();
+        if(isTurnStarted === false){
+          setIsTurnStarted(true);
+          setStartButtonTitle("Terminar Turno");
+           
+            setModalVisible(false);
+             sendCoordinatesToServer();
+        }
+       
       } else {
         console.log(response.data.singleData.mensaje)
         setErrorMessage(response.data.singleData.mensaje);
@@ -144,11 +151,13 @@ export const HomeScreen = () => {
   };
 
   const handleStartTurn = () => {
+    console.log("Iniciar turno")
     sendRequestToAPI(true);
     setLocationActive(true);
   };
 
   const handleEndTurn = () => {
+    console.log("Terminar turno")
     stopSendingCoordinates();
     sendRequestToAPI(false);
     setLocationActive(false);
@@ -178,7 +187,11 @@ export const HomeScreen = () => {
                     height={50}
                     backgroundColor={Color.aqua_500}
                     textColor="white"
-                    onPress={() => setErrorModalVisible(false)}
+                    onPress={() => {
+                      setModalVisible(false);
+                      setErrorModalVisible(false);
+                      setErrorMessage("")
+                    }}
                   />
                 </View>
               </>
