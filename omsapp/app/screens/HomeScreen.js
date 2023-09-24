@@ -15,7 +15,9 @@ export const HomeScreen = () => {
   const [intervalId, setIntervalId] = useState(null);
   const [isTurnStarted, setIsTurnStarted] = useState(false);
   const [startButtonTitle, setStartButtonTitle] = useState("Iniciar Turno");
+  const [errorMessage, setErrorMessage] = useState("");
   const { user } = useContext(UserContext);
+  const [errorModalVisible, setErrorModalVisible] = useState(false);
 
   const sendRequestToAPI = async (wDay_start_finish) => {
     try {
@@ -25,7 +27,7 @@ export const HomeScreen = () => {
         person_identification: user.id,
         wDay_condition: true,
       };
-      
+
       const headers = {
         'accept': 'text/plain',
         'Content-Type': 'application/json',
@@ -40,13 +42,16 @@ export const HomeScreen = () => {
       if (response.status === 201) {
         console.log('Solicitud a la API exitosa. Status 201.');
         if (connection && connection.state === HubConnectionState.Connected) {
-          // Enviar un mensaje a SignalR después de que la API responda con éxito
           connection.invoke('SendMessageToB', "Turno iniciado");
         }
         setIsTurnStarted(true);
         setStartButtonTitle("Terminar Turno");
         setModalVisible(false);
+        sendCoordinatesToServer();
       } else {
+        console.log(response.data.singleData.mensaje)
+        setErrorMessage(response.data.singleData.mensaje);
+        setErrorModalVisible(true);
         console.log('La solicitud a la API no devolvió un status 201.');
       }
     } catch (error) {
@@ -94,6 +99,7 @@ export const HomeScreen = () => {
       }
     };
   }, [connection]);
+
   const sendCoordinatesToServer = async () => {
     let { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== 'granted') {
@@ -122,7 +128,7 @@ export const HomeScreen = () => {
       } catch (error) {
         console.error('Error al obtener las coordenadas:', error);
       }
-    }, 1000); // Enviar coordenadas cada 1 segundo
+    }, 1000);
 
     setIntervalId(newIntervalId);
     setIsTurnStarted(true);
@@ -138,58 +144,75 @@ export const HomeScreen = () => {
   };
 
   const handleStartTurn = () => {
-    sendRequestToAPI(true); // Realiza una solicitud a la API
+    sendRequestToAPI(true);
     setLocationActive(true);
-    sendCoordinatesToServer(); // Inicia el envío de coordenadas
   };
 
   const handleEndTurn = () => {
     stopSendingCoordinates();
     sendRequestToAPI(false);
     setLocationActive(false);
-    setStartButtonTitle("Iniciar Turno"); // Cambia el texto del botón de "Terminar Turno" a "Iniciar Turno"
+    setStartButtonTitle("Iniciar Turno");
   };
-  
-  
+
   return (
     <View style={styles.container}>
       <Modal
         animationType="slide"
         transparent={true}
-        visible={modalVisible}
+        visible={modalVisible || errorModalVisible}
         onRequestClose={() => {
           setModalVisible(false);
+          setErrorModalVisible(false);
         }}
       >
         <View style={styles.centeredView}>
           <View style={styles.modalView}>
-            <Text style={styles.modalTitle}>¿Desea iniciar su turno?</Text>
-            <Text style={styles.modalText}>
-              Una vez iniciado, solo podrá concluir una vez cumpla con su
-              horario
-            </Text>
-            <View style={{ marginBottom: 15 }}>
-              <SubmitButton
-                title="Aceptar"
-                width={250}
-                height={50}
-                backgroundColor={Color.aqua_500}
-                textColor="white"
-                onPress={handleStartTurn}
-              />
-            </View>
-            <View style={{ marginBottom: 15 }}>
-              <SubmitButton
-                title="Cancelar"
-                width={250}
-                height={50}
-                backgroundColor="white"
-                borderWidth={2}
-                onPress={() => {
-                  setModalVisible(false);
-                }}
-              />
-            </View>
+            {errorMessage ? (
+              <>
+                <Text style={styles.modalTitle}>{errorMessage}</Text>
+                <View style={{ marginBottom: 15 }}>
+                  <SubmitButton
+                    title="Aceptar"
+                    width={250}
+                    height={50}
+                    backgroundColor={Color.aqua_500}
+                    textColor="white"
+                    onPress={() => setErrorModalVisible(false)}
+                  />
+                </View>
+              </>
+            ) : (
+              <>
+                <Text style={styles.modalTitle}>¿Desea iniciar su turno?</Text>
+                <Text style={styles.modalText}>
+                  Una vez iniciado, solo podrá concluir una vez cumpla con su
+                  horario
+                </Text>
+                <View style={{ marginBottom: 15 }}>
+                  <SubmitButton
+                    title="Aceptar"
+                    width={250}
+                    height={50}
+                    backgroundColor={Color.aqua_500}
+                    textColor="white"
+                    onPress={handleStartTurn}
+                  />
+                </View>
+                <View style={{ marginBottom: 15 }}>
+                  <SubmitButton
+                    title="Cancelar"
+                    width={250}
+                    height={50}
+                    backgroundColor="white"
+                    borderWidth={2}
+                    onPress={() => {
+                      setModalVisible(false);
+                    }}
+                  />
+                </View>
+              </>
+            )}
           </View>
         </View>
       </Modal>

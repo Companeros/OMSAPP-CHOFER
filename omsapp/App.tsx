@@ -2,6 +2,7 @@ import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View } from 'react-native';
 import HomeScreen from "./app/screens/HomeScreen";
 import Login from "./app/screens/Login";
+import StartScreen from "./app/screens/StartScreen";
 import { PerfilScreen } from './app/screens/PerfilScreen';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -42,7 +43,8 @@ export default function App() {
   return (
     <UserProvider>
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="Login" >
+      <Stack.Navigator initialRouteName="StartScreen" >
+      <Stack.Screen name="StartScreen" component={StartScreen} options={{ headerShown: false }}/>
         <Stack.Screen name="Login" component={Login} options={{ headerShown: false }}/>
         <Stack.Screen name="Main" component={MainTabNavigator} options={{ headerShown: false }}/>
       </Stack.Navigator>
