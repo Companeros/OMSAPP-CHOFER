@@ -1,12 +1,17 @@
 import { useState } from "react";
-import axios from 'axios';
+import axios from "axios";
 
 export const useFetch = () => {
   const [error, setError] = useState(null);
   const [data, setData] = useState({});
   const [isLoading, setIsLoading] = useState(false);
 
-  const fetchData = async (endpoint : string, params : object | null, body : any, headers: object | null) => {
+  const fetchData = async (
+    endpoint: string,
+    params: object | null,
+    body: any,
+    headers: object | null
+  ) => {
     setIsLoading(true);
     try {
       let options;
@@ -35,7 +40,7 @@ export const useSend = () => {
   const [data, setData] = useState({});
   const [isLoading, setIsLoading] = useState(false);
 
-  const sendData = async (endpoint : string, body : any, headers: any) => {
+  const sendData = async (endpoint: string, params: any, headers: any) => {
     setIsLoading(true);
     try {
       let options;
@@ -43,17 +48,17 @@ export const useSend = () => {
         method: "POST",
         url: `https://omsappapi.azurewebsites.net/api${endpoint}`,
         headers: { ...headers },
-        data: { ...body },
+        params: { ...params },
       };
 
-      const response = await axios.request(options);
-      setData(response.data.dataList);
-    } catch (e : any) {
+      axios.request(options).then((response) => {
+        setData(response.data);
+      });
+    } catch (e: any) {
       setError(e.message);
     } finally {
       setIsLoading(false);
     }
   };
-
   return { data, error, isLoading, sendData };
 };
