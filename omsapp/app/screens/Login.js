@@ -110,8 +110,10 @@ const Login = () => {
                 </Text>
                 <TouchableOpacity
                   style={[styles.modalButton, { backgroundColor: Color.aqua_500 }]}
-                  onPress={navigateToHomeScreen} // Redirige al HomeScreen
-                  // Puedes redirigir al HomeScreen o la pantalla que desees
+                   onPress={() => {
+                    setModalVisible(false);
+                    navigateToHomeScreen()
+                  }}
                 >
                   <Text style={[styles.modalButtonText, { color: "white" }]}>
                     Continuar
