@@ -39,8 +39,14 @@ export const useSend = () => {
   const [error, setError] = useState(null);
   const [data, setData] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+  const [statusCode, setStatusCode] = useState(0);
 
-  const sendData = async (endpoint: string, params: any, headers: any) => {
+  const sendData = async (
+    endpoint: string,
+    params: any,
+    headers: any,
+    body: any
+  ) => {
     setIsLoading(true);
     try {
       let options;
@@ -49,10 +55,12 @@ export const useSend = () => {
         url: `https://omsappapi.azurewebsites.net/api${endpoint}`,
         headers: { ...headers },
         params: { ...params },
+        data: { ...body },
       };
 
       axios.request(options).then((response) => {
         setData(response.data);
+        setStatusCode(response.status);
       });
     } catch (e: any) {
       setError(e.message);
@@ -60,5 +68,5 @@ export const useSend = () => {
       setIsLoading(false);
     }
   };
-  return { data, error, isLoading, sendData };
+  return { data, error, isLoading, sendData, statusCode };
 };

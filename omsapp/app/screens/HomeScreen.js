@@ -3,87 +3,64 @@ import { Text, StyleSheet, View, Modal } from "react-native";
 import { Button } from "../atoms/Button";
 import { Color, FontSize } from "../styles/GlobalStyles";
 import SubmitButton from "../molecules/SubmitButton";
-import axios from 'axios';
-import * as Location from 'expo-location';
-import { HubConnectionBuilder, HubConnectionState } from '@microsoft/signalr';
-import { UserContext } from '../../UserContext';
+import * as Location from "expo-location";
+import { HubConnectionBuilder, HubConnectionState } from "@microsoft/signalr";
+import { UserContext } from "../../UserContext";
 import Toast from "react-native-toast-message";
+import { useSend } from "../services/hooks";
 
 export const HomeScreen = () => {
   const [modalVisible, setModalVisible] = useState(false);
-  const [locationActive, setLocationActive] = useState(false);
   const [connection, setConnection] = useState(null);
   const [intervalId, setIntervalId] = useState(null);
   const [isTurnStarted, setIsTurnStarted] = useState(false);
   const [startButtonTitle, setStartButtonTitle] = useState("Iniciar Turno");
   const [errorMessage, setErrorMessage] = useState("");
   const { user } = useContext(UserContext);
-  const [errorModalVisible, setErrorModalVisible] = useState(false);
+  const { data, error, isLoading, sendData, statusCode } = useSend();
 
-  const showSuccessToast = () => {
+  const showToast = (type, title, subtitle) => {
     Toast.show({
-      type: "success",
-      text1: "Inicio de sesión correcto",
-      text2: "Se ha iniciado sesión correctamente",
-      visibilityTime: 2000,
-      onHide: () => navigateToHomeScreen(),
+      type: type,
+      text1: title,
+      text2: subtitle,
+      visibilityTime: 3000,
     });
   };
 
-  const showSErrorToast = () => {
-    Toast.show({
-      type: "error",
-      text1: "Inicio de sesión incorrecto",
-      text2: "Se ha producido un error al iniciar sesión",
-      onShow: () => {
-        // Modificar método de limpiado de campos
-        setEmail("");
-        setPassword("");
-      },
-    });
-  };
-
-  const sendRequestToAPI = async (wDay_start_finish) => {
-    try {
-      console.log(user.userinfo);
-      const requestData = {
-        id: 0,
-        wDay_start_finish: wDay_start_finish,
-        person_identification: user.userinfo.id,
-        wDay_condition: true,
-      };
-
-      const headers = {
-        accept: "text/plain",
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${user.results}`, // Reemplaza YOUR_ACCESS_TOKEN con tu token real
-      };
-
-      const response = await axios.post(
-        "https://omsappapi.azurewebsites.net/api/WorkingDay/SetWorkingDay",
-        requestData,
-        { headers }
-      );
-
-      console.log(response.status);
-      if (response.status === 201) {
-        console.log("Solicitud a la API exitosa. Status 201.");
+  useEffect(() => {
+    if (Object.keys(data).length !== 0) {
+      console.log(statusCode);
+      if (statusCode === 201) {
         if (connection && connection.state === HubConnectionState.Connected) {
           connection.invoke("SendMessageToB", "Turno iniciado");
         }
-        if (isTurnStarted === false) {
-          setIsTurnStarted(true);
-          setStartButtonTitle("Terminar Turno");
-
-          setModalVisible(false);
+        if (isTurnStarted) {
           sendCoordinatesToServer();
         }
       } else {
-        console.log(response.data.singleData.mensaje);
-        setErrorMessage(response.data.singleData.mensaje);
-        setErrorModalVisible(true);
-        console.log("La solicitud a la API no devolvió un status 201.");
+        showToast("error", data.singleData.mensaje);
       }
+    }
+  }, [data, statusCode]);
+
+  const sendRequestToAPI = async (wDay_start_finish) => {
+    try {
+      await sendData(
+        "/WorkingDay/SetWorkingDay",
+        null,
+        {
+          accept: "text/plain",
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${user.results}`,
+        },
+        {
+          id: 0,
+          wDay_start_finish: wDay_start_finish,
+          person_identification: user.userinfo.id,
+          wDay_condition: true,
+        }
+      );
     } catch (error) {
       console.error("Error al realizar la solicitud a la API:", error.message);
     }
@@ -166,8 +143,6 @@ export const HomeScreen = () => {
     }, 1000);
 
     setIntervalId(newIntervalId);
-    setIsTurnStarted(true);
-    setModalVisible(false);
   };
 
   const stopSendingCoordinates = () => {
@@ -175,21 +150,32 @@ export const HomeScreen = () => {
       clearInterval(intervalId);
       setIntervalId(null);
     }
-    setIsTurnStarted(false);
   };
 
   const handleStartTurn = () => {
     console.log("Iniciar turno");
+    setModalVisible(!modalVisible);
+    setIsTurnStarted(true);
+    setStartButtonTitle("Terminar Turno");
+    showToast(
+      "success",
+      "Ha iniciado su turno",
+      "La transmisión de su localización ha sido iniciado exitosamente"
+    );
     sendRequestToAPI(true);
-    setLocationActive(true);
   };
 
   const handleEndTurn = () => {
     console.log("Terminar turno");
     stopSendingCoordinates();
-    sendRequestToAPI(false);
-    setLocationActive(false);
+    showToast(
+      "success",
+      "Ha finalizado su turno",
+      "La transmisión de su localización ha sido concluido exitosamente"
+    );
     setStartButtonTitle("Iniciar Turno");
+    sendRequestToAPI(false);
+    setIsTurnStarted(!isTurnStarted);
   };
 
   return (
@@ -197,7 +183,7 @@ export const HomeScreen = () => {
       <Modal
         animationType="slide"
         transparent={true}
-        visible={modalVisible || errorModalVisible}
+        visible={modalVisible}
         onRequestClose={() => {
           setModalVisible(false);
           setErrorModalVisible(false);
@@ -205,55 +191,33 @@ export const HomeScreen = () => {
       >
         <View style={styles.centeredView}>
           <View style={styles.modalView}>
-            {errorMessage ? (
-              <>
-                <Text style={styles.modalTitle}>{errorMessage}</Text>
-                <View style={{ marginBottom: 15 }}>
-                  <SubmitButton
-                    title="Aceptar"
-                    width={250}
-                    height={50}
-                    backgroundColor={Color.aqua_500}
-                    textColor="white"
-                    onPress={() => {
-                      setModalVisible(false);
-                      setErrorModalVisible(false);
-                      setErrorMessage("");
-                    }}
-                  />
-                </View>
-              </>
-            ) : (
-              <>
-                <Text style={styles.modalTitle}>¿Desea iniciar su turno?</Text>
-                <Text style={styles.modalText}>
-                  Una vez iniciado, solo podrá concluir una vez cumpla con su
-                  horario
-                </Text>
-                <View style={{ marginBottom: 15 }}>
-                  <SubmitButton
-                    title="Aceptar"
-                    width={250}
-                    height={50}
-                    backgroundColor={Color.aqua_500}
-                    textColor="white"
-                    onPress={handleStartTurn}
-                  />
-                </View>
-                <View style={{ marginBottom: 15 }}>
-                  <SubmitButton
-                    title="Cancelar"
-                    width={250}
-                    height={50}
-                    backgroundColor="white"
-                    borderWidth={2}
-                    onPress={() => {
-                      setModalVisible(false);
-                    }}
-                  />
-                </View>
-              </>
-            )}
+            <Text style={styles.modalTitle}>¿Desea iniciar su turno?</Text>
+            <Text style={styles.modalText}>
+              Una vez iniciado, solo podrá concluir una vez cumpla con su
+              horario
+            </Text>
+            <View style={{ marginBottom: 15 }}>
+              <SubmitButton
+                title="Aceptar"
+                width={250}
+                height={50}
+                backgroundColor={Color.aqua_500}
+                textColor="white"
+                onPress={handleStartTurn}
+              />
+            </View>
+            <View style={{ marginBottom: 15 }}>
+              <SubmitButton
+                title="Cancelar"
+                width={250}
+                height={50}
+                backgroundColor="white"
+                borderWidth={2}
+                onPress={() => {
+                  setModalVisible(false);
+                }}
+              />
+            </View>
           </View>
         </View>
       </Modal>
