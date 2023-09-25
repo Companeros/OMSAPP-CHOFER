@@ -15,7 +15,6 @@ export const HomeScreen = () => {
   const [intervalId, setIntervalId] = useState(null);
   const [isTurnStarted, setIsTurnStarted] = useState(false);
   const [startButtonTitle, setStartButtonTitle] = useState("Iniciar Turno");
-  const [errorMessage, setErrorMessage] = useState("");
   const { user } = useContext(UserContext);
   const { data, error, isLoading, sendData, statusCode } = useSend();
 
@@ -29,8 +28,7 @@ export const HomeScreen = () => {
   };
 
   useEffect(() => {
-    if (Object.keys(data).length !== 0) {
-      console.log(statusCode);
+    if (Object.keys(data).length !== 0 && statusCode !== 0) {
       if (statusCode === 201) {
         if (connection && connection.state === HubConnectionState.Connected) {
           connection.invoke("SendMessageToB", "Turno iniciado");
@@ -48,7 +46,6 @@ export const HomeScreen = () => {
     try {
       await sendData(
         "/WorkingDay/SetWorkingDay",
-        null,
         {
           accept: "text/plain",
           "Content-Type": "application/json",
@@ -155,14 +152,16 @@ export const HomeScreen = () => {
   const handleStartTurn = () => {
     console.log("Iniciar turno");
     setModalVisible(!modalVisible);
-    setIsTurnStarted(true);
-    setStartButtonTitle("Terminar Turno");
-    showToast(
-      "success",
-      "Ha iniciado su turno",
-      "La transmisión de su localización ha sido iniciado exitosamente"
-    );
     sendRequestToAPI(true);
+    if (statusCode === 201) {
+      setIsTurnStarted(true);
+      setStartButtonTitle("Terminar Turno");
+      showToast(
+        "success",
+        "Ha iniciado su turno",
+        "La transmisión de su localización ha sido iniciado exitosamente"
+      );
+    }
   };
 
   const handleEndTurn = () => {

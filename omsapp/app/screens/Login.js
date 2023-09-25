@@ -52,7 +52,7 @@ const Login = () => {
   };
 
   const handleLogin = async () => {
-    await sendData("/Users/login", null, "*/*", formData);
+    await sendData("/Users/login", "*/*", formData);
   };
 
   useEffect(() => {
