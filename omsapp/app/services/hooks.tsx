@@ -41,12 +41,7 @@ export const useSend = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [statusCode, setStatusCode] = useState(0);
 
-  const sendData = async (
-    endpoint: string,
-    params: any,
-    headers: any,
-    body: any
-  ) => {
+  const sendData = async (endpoint: string, headers: any, body: any) => {
     setIsLoading(true);
     try {
       let options;
@@ -54,7 +49,6 @@ export const useSend = () => {
         method: "POST",
         url: `https://omsappapi.azurewebsites.net/api${endpoint}`,
         headers: { ...headers },
-        params: { ...params },
         data: { ...body },
       };
 
