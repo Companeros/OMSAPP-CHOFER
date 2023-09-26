@@ -3,66 +3,63 @@ import { Text, StyleSheet, View, Modal } from "react-native";
 import { Button } from "../atoms/Button";
 import { Color, FontSize } from "../styles/GlobalStyles";
 import SubmitButton from "../molecules/SubmitButton";
-import axios from 'axios';
-import * as Location from 'expo-location';
-import { HubConnectionBuilder, HubConnectionState } from '@microsoft/signalr';
-import { UserContext } from '../../UserContext';
+import * as Location from "expo-location";
+import { HubConnectionBuilder, HubConnectionState } from "@microsoft/signalr";
+import { UserContext } from "../../UserContext";
+import Toast from "react-native-toast-message";
+import { useSend } from "../services/hooks";
 
 export const HomeScreen = () => {
   const [modalVisible, setModalVisible] = useState(false);
-  const [locationActive, setLocationActive] = useState(false);
   const [connection, setConnection] = useState(null);
   const [intervalId, setIntervalId] = useState(null);
   const [isTurnStarted, setIsTurnStarted] = useState(false);
   const [startButtonTitle, setStartButtonTitle] = useState("Iniciar Turno");
-  const [errorMessage, setErrorMessage] = useState("");
   const { user } = useContext(UserContext);
-  const [errorModalVisible, setErrorModalVisible] = useState(false);
+  const { data, error, isLoading, sendData, statusCode } = useSend();
+
+  const showToast = (type, title, subtitle) => {
+    Toast.show({
+      type: type,
+      text1: title,
+      text2: subtitle,
+      visibilityTime: 3000,
+    });
+  };
+
+  useEffect(() => {
+    if (Object.keys(data).length !== 0 && statusCode !== 0) {
+      if (statusCode === 201) {
+        if (connection && connection.state === HubConnectionState.Connected) {
+          connection.invoke("SendMessageToB", "Turno iniciado");
+        }
+        if (isTurnStarted) {
+          sendCoordinatesToServer();
+        }
+      } else {
+        showToast("error", data.singleData.mensaje);
+      }
+    }
+  }, [data, statusCode]);
 
   const sendRequestToAPI = async (wDay_start_finish) => {
     try {
-      console.log(user.userinfo)
-      const requestData = {
-        id: 0,
-        wDay_start_finish: wDay_start_finish,
-        person_identification: user.userinfo.id,
-        wDay_condition: true,
-      };
-
-      const headers = {
-        'accept': 'text/plain',
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${user.results}`, // Reemplaza YOUR_ACCESS_TOKEN con tu token real
-      };
-
-      const response = await axios.post(
-        'https://omsappapi.azurewebsites.net/api/WorkingDay/SetWorkingDay',
-        requestData,
-        { headers }
+      await sendData(
+        "/WorkingDay/SetWorkingDay",
+        {
+          accept: "text/plain",
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${user.results}`,
+        },
+        {
+          id: 0,
+          wDay_start_finish: wDay_start_finish,
+          person_identification: user.userinfo.id,
+          wDay_condition: true,
+        }
       );
-        
-      console.log(response.status)
-      if (response.status === 201) {
-        console.log('Solicitud a la API exitosa. Status 201.');
-        if (connection && connection.state === HubConnectionState.Connected) {
-          connection.invoke('SendMessageToB', "Turno iniciado");
-        }
-        if(isTurnStarted === false){
-          setIsTurnStarted(true);
-          setStartButtonTitle("Terminar Turno");
-           
-            setModalVisible(false);
-             sendCoordinatesToServer();
-        }
-       
-      } else {
-        console.log(response.data.singleData.mensaje)
-        setErrorMessage(response.data.singleData.mensaje);
-        setErrorModalVisible(true);
-        console.log('La solicitud a la API no devolvió un status 201.');
-      }
     } catch (error) {
-      console.error('Error al realizar la solicitud a la API:', error.message);
+      console.error("Error al realizar la solicitud a la API:", error.message);
     }
   };
 
@@ -71,16 +68,16 @@ export const HomeScreen = () => {
       if (connection && connection.state === HubConnectionState.Disconnected) {
         try {
           await connection.start();
-          console.log('Conexión SignalR establecida con éxito.');
+          console.log("Conexión SignalR establecida con éxito.");
         } catch (error) {
-          console.error('Error al iniciar la conexión SignalR:', error);
+          console.error("Error al iniciar la conexión SignalR:", error);
         }
       } else if (!connection) {
         const hubConnection = new HubConnectionBuilder()
-          .withUrl('https://omsappapi.azurewebsites.net/Hubs/ChatHub')
+          .withUrl("https://omsappapi.azurewebsites.net/Hubs/ChatHub")
           .build();
 
-        hubConnection.on('ReceiveCoordinates', (message) => {
+        hubConnection.on("ReceiveCoordinates", (message) => {
           console.log(`Coordenadas recibidas desde el servidor: ${message}`);
         });
 
@@ -88,12 +85,14 @@ export const HomeScreen = () => {
 
         try {
           await hubConnection.start();
-          console.log('Conexión SignalR establecida con éxito.');
+          console.log("Conexión SignalR establecida con éxito.");
         } catch (error) {
-          console.error('Error al iniciar la conexión SignalR:', error);
+          console.error("Error al iniciar la conexión SignalR:", error);
         }
       } else {
-        console.warn('La conexión ya está en un estado diferente a Disconnected.');
+        console.warn(
+          "La conexión ya está en un estado diferente a Disconnected."
+        );
       }
     };
 
@@ -102,15 +101,15 @@ export const HomeScreen = () => {
     return () => {
       if (connection && connection.state === HubConnectionState.Connected) {
         connection.stop();
-        console.log('Conexión SignalR detenida.');
+        console.log("Conexión SignalR detenida.");
       }
     };
   }, [connection]);
 
   const sendCoordinatesToServer = async () => {
     let { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== 'granted') {
-      console.error('Permiso de ubicación denegado');
+    if (status !== "granted") {
+      console.error("Permiso de ubicación denegado");
       return;
     }
 
@@ -122,24 +121,25 @@ export const HomeScreen = () => {
         const message = `Latitud: ${latitude}, Longitud: ${longitude}`;
 
         if (connection && connection.state === HubConnectionState.Connected) {
-          connection.invoke('SendMessageToB', message)
+          connection
+            .invoke("SendMessageToB", message)
             .then(() => {
               console.log(`Coordenadas enviadas al servidor: ${message}`);
             })
             .catch((error) => {
-              console.error('Error al enviar las coordenadas:', error);
+              console.error("Error al enviar las coordenadas:", error);
             });
         } else {
-          console.error('La conexión SignalR no está en estado Connected para enviar coordenadas.');
+          console.error(
+            "La conexión SignalR no está en estado Connected para enviar coordenadas."
+          );
         }
       } catch (error) {
-        console.error('Error al obtener las coordenadas:', error);
+        console.error("Error al obtener las coordenadas:", error);
       }
     }, 1000);
 
     setIntervalId(newIntervalId);
-    setIsTurnStarted(true);
-    setModalVisible(false);
   };
 
   const stopSendingCoordinates = () => {
@@ -147,21 +147,34 @@ export const HomeScreen = () => {
       clearInterval(intervalId);
       setIntervalId(null);
     }
-    setIsTurnStarted(false);
   };
 
   const handleStartTurn = () => {
-    console.log("Iniciar turno")
+    console.log("Iniciar turno");
+    setModalVisible(!modalVisible);
     sendRequestToAPI(true);
-    setLocationActive(true);
+    if (statusCode === 201) {
+      setIsTurnStarted(true);
+      setStartButtonTitle("Terminar Turno");
+      showToast(
+        "success",
+        "Ha iniciado su turno",
+        "La transmisión de su localización ha sido iniciado exitosamente"
+      );
+    }
   };
 
   const handleEndTurn = () => {
-    console.log("Terminar turno")
+    console.log("Terminar turno");
     stopSendingCoordinates();
-    sendRequestToAPI(false);
-    setLocationActive(false);
+    showToast(
+      "success",
+      "Ha finalizado su turno",
+      "La transmisión de su localización ha sido concluido exitosamente"
+    );
     setStartButtonTitle("Iniciar Turno");
+    sendRequestToAPI(false);
+    setIsTurnStarted(!isTurnStarted);
   };
 
   return (
@@ -169,7 +182,7 @@ export const HomeScreen = () => {
       <Modal
         animationType="slide"
         transparent={true}
-        visible={modalVisible || errorModalVisible}
+        visible={modalVisible}
         onRequestClose={() => {
           setModalVisible(false);
           setErrorModalVisible(false);
@@ -177,55 +190,33 @@ export const HomeScreen = () => {
       >
         <View style={styles.centeredView}>
           <View style={styles.modalView}>
-            {errorMessage ? (
-              <>
-                <Text style={styles.modalTitle}>{errorMessage}</Text>
-                <View style={{ marginBottom: 15 }}>
-                  <SubmitButton
-                    title="Aceptar"
-                    width={250}
-                    height={50}
-                    backgroundColor={Color.aqua_500}
-                    textColor="white"
-                    onPress={() => {
-                      setModalVisible(false);
-                      setErrorModalVisible(false);
-                      setErrorMessage("")
-                    }}
-                  />
-                </View>
-              </>
-            ) : (
-              <>
-                <Text style={styles.modalTitle}>¿Desea iniciar su turno?</Text>
-                <Text style={styles.modalText}>
-                  Una vez iniciado, solo podrá concluir una vez cumpla con su
-                  horario
-                </Text>
-                <View style={{ marginBottom: 15 }}>
-                  <SubmitButton
-                    title="Aceptar"
-                    width={250}
-                    height={50}
-                    backgroundColor={Color.aqua_500}
-                    textColor="white"
-                    onPress={handleStartTurn}
-                  />
-                </View>
-                <View style={{ marginBottom: 15 }}>
-                  <SubmitButton
-                    title="Cancelar"
-                    width={250}
-                    height={50}
-                    backgroundColor="white"
-                    borderWidth={2}
-                    onPress={() => {
-                      setModalVisible(false);
-                    }}
-                  />
-                </View>
-              </>
-            )}
+            <Text style={styles.modalTitle}>¿Desea iniciar su turno?</Text>
+            <Text style={styles.modalText}>
+              Una vez iniciado, solo podrá concluir una vez cumpla con su
+              horario
+            </Text>
+            <View style={{ marginBottom: 15 }}>
+              <SubmitButton
+                title="Aceptar"
+                width={250}
+                height={50}
+                backgroundColor={Color.aqua_500}
+                textColor="white"
+                onPress={handleStartTurn}
+              />
+            </View>
+            <View style={{ marginBottom: 15 }}>
+              <SubmitButton
+                title="Cancelar"
+                width={250}
+                height={50}
+                backgroundColor="white"
+                borderWidth={2}
+                onPress={() => {
+                  setModalVisible(false);
+                }}
+              />
+            </View>
           </View>
         </View>
       </Modal>
@@ -236,7 +227,9 @@ export const HomeScreen = () => {
             width={250}
             height={50}
             backgroundColor={isTurnStarted ? Color.red : Color.aqua_500}
-            onPress={isTurnStarted ? handleEndTurn : () => setModalVisible(true)}
+            onPress={
+              isTurnStarted ? handleEndTurn : () => setModalVisible(true)
+            }
             textColor="white"
           />
         </View>
@@ -259,6 +252,7 @@ export const HomeScreen = () => {
           { backgroundColor: Color.light_gray, bottom: 200, left: 250 },
         ]}
       />
+      <Toast />
     </View>
   );
 };
