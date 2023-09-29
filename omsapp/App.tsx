@@ -9,10 +9,12 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { FontAwesome5 } from "@expo/vector-icons";
 import { createStackNavigator } from '@react-navigation/stack';
 import { UserProvider } from "./UserContext"; // Importa el UserProvider
+import { enableScreens } from 'react-native-screens';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
+enableScreens();
 function MainTabNavigator() {
   return (
     <Tab.Navigator
