@@ -5,13 +5,11 @@ import SubmitButton from "../molecules/SubmitButton";
 import Toast from "react-native-toast-message";
 import * as Location from "expo-location";
 import { sendRealtime, stopRealtime } from "../services/realtime";
+import { startLocation, stopLocation } from "../services/location";
 
 export const HomeScreen = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [isTurnStarted, setIsTurnStarted] = useState(false);
-  const [locationSubscription, setLocationSubscription] = useState(null);
-  const [latestLocation, setLatestLocation] = useState(null);
-  const isMounted = useRef(true);
 
   const showToast = (type, title, subtitle) => {
     Toast.show({
@@ -22,68 +20,10 @@ export const HomeScreen = () => {
     });
   };
 
-  useEffect(() => {
-    const startLocationTracking = async () => {
-      try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') {
-          showToast('error', 'Permiso denegado', 'No se puede obtener la ubicación sin permiso.');
-          return;
-        }
-
-        const subscription = await Location.watchPositionAsync(
-          {
-            accuracy: Location.Accuracy.High,
-            timeInterval: 3000,
-            distanceInterval: 0,
-          },
-          (location) => {
-            if (isMounted.current) {
-              setLatestLocation(location);
-            }
-          }
-        );
-
-        if (isMounted.current) {
-          sendRealtime(latestLocation?.coords.latitude, latestLocation?.coords.longitude, 14);
-        }
-
-        return () => {
-          subscription.remove();
-          stopRealtime();
-        };
-      } catch (error) {
-        showToast('error', 'Error al obtener la ubicación', error.message);
-      }
-    };
-
-    if (isTurnStarted) {
-      startLocationTracking();
-    }
-
-    return () => {
-      isMounted.current = false;
-    };
-  }, [isTurnStarted]);
-
-  useEffect(() => {
-    sendRealtime(latestLocation?.coords.latitude, latestLocation?.coords.longitude, 14)
-  }, [locationSubscription])
-
   const handleStartTurn = async () => {
     setModalVisible(false);
     setIsTurnStarted(true);
-    const subscription = await Location.watchPositionAsync(
-      {
-        accuracy: Location.Accuracy.High,
-        timeInterval: 3000,
-        distanceInterval: 0,
-      },
-      (location) => {
-        setLatestLocation(location);
-      }
-    );
-    setLocationSubscription(subscription);
+    startLocation();
   };
   const handleEndTurn = () => {
     showToast(
@@ -92,10 +32,7 @@ export const HomeScreen = () => {
       "La transmisión de su localización ha sido concluido exitosamente"
     );
     setIsTurnStarted(false);
-    if (locationSubscription) {
-      locationSubscription.remove();
-      setLocationSubscription(null);
-    }
+    stopLocation();
     stopRealtime();
   };
 
@@ -165,8 +102,6 @@ export const HomeScreen = () => {
           )}
         </View>
       </View>
-      <Text>Latitude: {latestLocation ? latestLocation.coords.latitude : "N/A"}</Text>
-      <Text>Latitude: {latestLocation ? latestLocation.coords.longitude : "N/A"}</Text>
       <View
         style={[
           styles.line,

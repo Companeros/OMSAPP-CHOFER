@@ -1,5 +1,6 @@
 import * as TaskManager from "expo-task-manager";
 import * as Location from "expo-location";
+import { sendRealtime, stopRealtime } from "../services/realtime";
 
 const LOCATION_TASK_NAME = "background-location-task";
 let latestLocationsPromise = null;
@@ -9,10 +10,7 @@ TaskManager.defineTask(LOCATION_TASK_NAME, ({ data: { locations }, error }) => {
     console.log(error.message);
     return;
   }
-  if (latestLocationsPromise) {
-    latestLocationsPromise.resolve(locations);
-  }
-  latestLocationsPromise = Promise.resolve(locations);
+  sendRealtime(locations[0].coords.latitude, locations[0].coords.longitude, 14)
 });
 
 export const startLocation = async () => {
@@ -23,7 +21,7 @@ export const startLocation = async () => {
     await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
       accuracy: Location.Accuracy.High,
       timeInterval: 500,
-      distanceInterval: 10,
+      distanceInterval: 0,
     });
     console.log("Location updates started.");
   }
@@ -32,11 +30,4 @@ export const startLocation = async () => {
 export const stopLocation = async () => {
   await Location.stopLocationUpdatesAsync(LOCATION_TASK_NAME);
   console.log("Location updates stopped.");
-};
-
-export const getLatestLocations = () => {
-  if (latestLocationsPromise) {
-    return latestLocationsPromise;
-  }
-  return Promise.resolve(null);
 };
