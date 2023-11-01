@@ -11,7 +11,6 @@ hubConnection.onreconnected(() => {
 
 export const sendRealtime = async (latitude : string | null, longitude : string | null, route : number) => {
   try {
-    console.log(hubConnection.state)
     if (hubConnection.state === HubConnectionState.Disconnected) {
       await hubConnection.start();
       console.log("Conexión iniciada");
@@ -37,7 +36,7 @@ export const sendRealtime = async (latitude : string | null, longitude : string 
 
 export const stopRealtime = async () => {
   if (hubConnection.state !== HubConnectionState.Disconnected) {
-    hubConnection.invoke("SendMessageToB", null).then()
+    await hubConnection.invoke("SendMessageToB", "").then()
     await hubConnection.stop();
     console.log("Conexión finalizada desde la Aplicación B");
   }
