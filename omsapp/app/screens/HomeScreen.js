@@ -1,15 +1,19 @@
-import React, { useState, useEffect, useRef} from "react";
+import React, { useState, useEffect, useRef, useContext } from "react";
 import { Text, StyleSheet, View, Modal } from "react-native";
 import { Color, FontSize } from "../styles/GlobalStyles";
 import SubmitButton from "../molecules/SubmitButton";
 import Toast from "react-native-toast-message";
-import * as Location from "expo-location";
-import { sendRealtime, stopRealtime } from "../services/realtime";
+import { stopRealtime } from "../services/realtime";
 import { startLocation, stopLocation } from "../services/location";
+import { useFetch, useSend } from "../services/hooks";
+import { UserContext } from '../../UserContext';
 
 export const HomeScreen = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [isTurnStarted, setIsTurnStarted] = useState(false);
+  const { data, fetchData } = useFetch();
+  const { error, sendData, statusCode } = useSend();
+  const { user } = useContext(UserContext);
 
   const showToast = (type, title, subtitle) => {
     Toast.show({
@@ -20,10 +24,41 @@ export const HomeScreen = () => {
     });
   };
 
+  const sendRequestToAPI = async (wDay_start_finish) => {
+    try {
+      await sendData(
+        "/WorkingDay/SetWorkingDay",
+        {
+          accept: "text/plain",
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${user.results}`,
+        },
+        {
+          id: 0,
+          wDay_start_finish: wDay_start_finish,
+          person_identification: user.userinfo.id,
+          wDay_condition: true,
+        }
+      );
+    } catch (error) {
+      console.error("Error al realizar la solicitud a la API:", error.message);
+    }
+  };
+
+  useEffect(() => {
+    fetchData(`/Assignment/GetInfoDriver?id=${user.userinfo.id}`) // Necesito el endpoint de pacotilla
+  }, [])
+
   const handleStartTurn = async () => {
     setModalVisible(false);
     setIsTurnStarted(true);
-    startLocation();
+    console.log(data)
+    if (Object.keys(data).length !== 0) {
+      sendRequestToAPI(true);
+      if (statusCode == 201) {
+        startLocation();
+      }
+    } // se agrega un else para que muestre un toast del error
   };
   const handleEndTurn = () => {
     showToast(
@@ -32,8 +67,11 @@ export const HomeScreen = () => {
       "La transmisión de su localización ha sido concluido exitosamente"
     );
     setIsTurnStarted(false);
-    stopLocation();
-    stopRealtime();
+    sendRequestToAPI(false);
+    if (statusCode == 201) {
+      stopLocation();
+      stopRealtime();
+    }
   };
 
   return (
