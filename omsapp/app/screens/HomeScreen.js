@@ -7,6 +7,7 @@ import { stopRealtime } from "../services/realtime";
 import { startLocation, stopLocation } from "../services/location";
 import { useFetch, useSend } from "../services/hooks";
 import { UserContext } from '../../UserContext';
+import { startTime } from "../services/validation";
 
 export const HomeScreen = () => {
   const [modalVisible, setModalVisible] = useState(false);
@@ -24,53 +25,70 @@ export const HomeScreen = () => {
     });
   };
 
-  const sendRequestToAPI = async (wDay_start_finish) => {
-    try {
-      await sendData(
-        "/WorkingDay/SetWorkingDay",
-        {
-          accept: "text/plain",
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${user.results}`,
-        },
-        {
-          id: 0,
-          wDay_start_finish: wDay_start_finish,
-          person_identification: user.userinfo.id,
-          wDay_condition: true,
-        }
-      );
-    } catch (error) {
-      console.error("Error al realizar la solicitud a la API:", error.message);
-    }
-  };
 
   useEffect(() => {
     fetchData(`/Assignment/GetInfoDriver?id=${user.userinfo.id}`) // Necesito el endpoint de pacotilla
   }, [])
 
+  useEffect(() => {
+    const sendRequestToAPI = async (wDay_start_finish) => {
+      try {
+        await sendData(
+          "/WorkingDay/SetWorkingDay",
+          {
+            accept: "text/plain",
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${user.results}`,
+          },
+          {
+            id: 0,
+            wDay_start_finish: wDay_start_finish,
+            person_identification: user.userinfo.id,
+            wDay_condition: true,
+          }
+        );
+      } catch (error) {
+        console.error("Error al realizar la solicitud a la API:", error.message);
+      }
+    };
+
+    sendRequestToAPI(isTurnStarted)
+
+  }, [isTurnStarted])
+
   const handleStartTurn = async () => {
     setModalVisible(false);
-    setIsTurnStarted(true);
-    console.log(data)
-    if (Object.keys(data).length !== 0) {
-      sendRequestToAPI(true);
+    setIsTurnStarted(startTime(data[0].assignmentStartDate, data[0].assignmentStartTime));
+    if (isTurnStarted) {
       if (statusCode == 201) {
         startLocation();
       }
-    } // se agrega un else para que muestre un toast del error
+    } else {
+      showToast(
+        "error",
+        "No tiene turno asignado",
+        "Validar que se a registrado su tanda laboral"
+      );
+    }
   };
   const handleEndTurn = () => {
-    showToast(
-      "success",
-      "Ha finalizado su turno",
-      "La transmisión de su localización ha sido concluido exitosamente"
-    );
-    setIsTurnStarted(false);
-    sendRequestToAPI(false);
-    if (statusCode == 201) {
-      stopLocation();
-      stopRealtime();
+    setIsTurnStarted(startTime(data[0].assignmentFinishDate, data[0].assignmentFinishTime));
+    if (!isTurnStarted) {
+      if (statusCode == 201) {
+        stopLocation();
+        stopRealtime();
+        showToast(
+          "success",
+          "Ha finalizado su turno",
+          "La transmisión de su localización ha sido concluido exitosamente"
+        );
+      }
+    } else {
+      showToast(
+        "error",
+        "Su turno no ha concluido",
+        "Validar la hora de cierre de su turno"
+      );
     }
   };
 
