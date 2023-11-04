@@ -11,7 +11,7 @@ import { endTime, startTime } from "../services/validation";
 
 export const HomeScreen = () => {
   const [modalVisible, setModalVisible] = useState(false);
-  const [isTurnStarted, setIsTurnStarted] = useState(false);
+  const [isTurnStarted, setIsTurnStarted] = useState(null);
   const { data, fetchData } = useFetch();
   const { error, sendData, statusCode } = useSend();
   const { user } = useContext(UserContext);
@@ -52,7 +52,9 @@ export const HomeScreen = () => {
       }
     };
 
-    sendRequestToAPI(isTurnStarted)
+    if (isTurnStarted === null) {
+      sendRequestToAPI(isTurnStarted)
+    }
 
   }, [isTurnStarted])
 
