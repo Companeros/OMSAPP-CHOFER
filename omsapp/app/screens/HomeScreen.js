@@ -7,7 +7,7 @@ import { stopRealtime } from "../services/realtime";
 import { startLocation, stopLocation } from "../services/location";
 import { useFetch, useSend } from "../services/hooks";
 import { UserContext } from '../../UserContext';
-import { startTime } from "../services/validation";
+import { endTime, startTime } from "../services/validation";
 
 export const HomeScreen = () => {
   const [modalVisible, setModalVisible] = useState(false);
@@ -72,7 +72,7 @@ export const HomeScreen = () => {
     }
   };
   const handleEndTurn = () => {
-    setIsTurnStarted(startTime(data[0].assignmentFinishDate, data[0].assignmentFinishTime));
+    setIsTurnStarted(endTime(data[0].assignmentFinishDate, data[0].assignmentFinishTime));
     if (!isTurnStarted) {
       if (statusCode == 201) {
         stopLocation();
