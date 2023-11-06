@@ -1,51 +1,61 @@
 import React, { useContext } from "react"; // Importa useContext desde React
-import { View, Text, StyleSheet, Button } from "react-native";
-import { UserContext } from '../../UserContext';
-
+import { View, Text, StyleSheet, Image } from "react-native";
+import { UserContext } from "../../UserContext";
+import { Color } from "../styles/GlobalStyles";
+import SubmitButton from "../molecules/SubmitButton";
 
 export const PerfilScreen = ({ navigation }) => {
- 
-  const {user} = useContext(UserContext); // Accede a las propiedades del contexto
+  const { user } = useContext(UserContext); // Accede a las propiedades del contexto
 
-  console.log(user.tittle);
-
-  const usuario = {
-    nombre: "John",
-    apellido: "Doe",
-    licencia: "1234567890",
-  };
-
-  const handleCerrarSesion = () => {
+  const handleSignOut = () => {
     navigation.navigate("StartScreen"); // Redirige a la pantalla HomeScreen
-
   };
 
   return (
     <View style={styles.container}>
-      <View style={styles.card}>
-        <Text style={styles.title}>Perfil de Usuario</Text>
-        <View style={styles.userInfo}>
-          <Text style={styles.label}>Nombre:</Text>
-          <Text style={styles.value}>{user.userinfo.tittle}</Text>
+      <View
+        style={[
+          styles.line,
+          { backgroundColor: Color.dim_gray, right: -50, top: 150 },
+        ]}
+      />
+      <View
+        style={[
+          styles.line,
+          { backgroundColor: Color.aqua_500, left: 0, top: 400 },
+        ]}
+      />
+      <Image
+        source={require("../../assets/profile.png")}
+        style={styles.imageStyle}
+      />
+      <View style={styles.content}>
+        <Text style={styles.title}>Información</Text>
+        <View style={styles.form}>
+          <View style={styles.userInfo}>
+            <Text style={styles.label}>Nombre:</Text>
+            <Text style={styles.value}>{user.userinfo.tittle}</Text>
+          </View>
+          <View style={styles.userInfo}>
+            <Text style={styles.label}>Número:</Text>
+            <Text style={styles.value}>{user.userinfo.personPhone}</Text>
+          </View>
+          <View style={styles.userInfo}>
+            <Text style={styles.label}>Licencia:</Text>
+            <Text style={styles.value}>{user.userinfo.personLicense}</Text>
+          </View>
         </View>
-        <View style={styles.userInfo}>
-          <Text style={styles.label}>Numero:</Text>
-          <Text style={styles.value}>{user.userinfo.personPhone}</Text>
-        </View>
-        <View style={styles.userInfo}>
-          <Text style={styles.label}>Licencia:</Text>
-          <Text style={styles.value}>{user.userinfo.personLicense}</Text>
-        </View>
-        <Button
+        <SubmitButton
           title="Cerrar Sesión"
-          onPress={handleCerrarSesion}
-          color="red"
+          onPress={handleSignOut}
+          width={"100%"}
+          backgroundColor={Color.dim_gray}
+          textColor="black"
         />
       </View>
     </View>
   );
 };
-
 
 const styles = StyleSheet.create({
   container: {
@@ -53,34 +63,36 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  card: {
-    backgroundColor: "white",
-    padding: 20,
-    borderRadius: 10,
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
+  imageStyle: {
+    height: "50%",
+    width: "100%",
+    resizeMode: "contain",
+  },
+  content: {
+    flex: 0.8,
+    alignItems: "flex-start",
+    width: "80%",
+    paddingVertical: 20,
+  },
+  form: {
+    marginVertical: 20,
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: "bold",
-    marginBottom: 20,
     textAlign: "center",
   },
   userInfo: {
-    flexDirection: "row",
     justifyContent: "space-between",
     marginBottom: 10,
   },
   label: {
-    fontSize: 16,
-    fontWeight: "bold",
+    fontSize: 12,
   },
   value: {
-    fontSize: 16,
+    fontSize: 20,
   },
+  line: { width: "50%", height: 40, position: "absolute" },
 });
 
 export default PerfilScreen;
