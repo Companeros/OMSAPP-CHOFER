@@ -1,22 +1,20 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useRef, useContext } from "react";
 import { Text, StyleSheet, View, Modal } from "react-native";
-import { Button } from "../atoms/Button";
 import { Color, FontSize } from "../styles/GlobalStyles";
 import SubmitButton from "../molecules/SubmitButton";
-import * as Location from "expo-location";
-import { HubConnectionBuilder, HubConnectionState } from "@microsoft/signalr";
-import { UserContext } from "../../UserContext";
 import Toast from "react-native-toast-message";
-import { useSend } from "../services/hooks";
+import { stopRealtime } from "../services/realtime";
+import { startLocation, stopLocation } from "../services/location";
+import { useFetch, useSend } from "../services/hooks";
+import { UserContext } from '../../UserContext';
+import { endTime, startTime } from "../services/validation";
 
 export const HomeScreen = () => {
   const [modalVisible, setModalVisible] = useState(false);
-  const [connection, setConnection] = useState(null);
-  const [intervalId, setIntervalId] = useState(null);
-  const [isTurnStarted, setIsTurnStarted] = useState(false);
-  const [startButtonTitle, setStartButtonTitle] = useState("Iniciar Turno");
+  const [isTurnStarted, setIsTurnStarted] = useState(null);
+  const { data, fetchData } = useFetch();
+  const { error, sendData, statusCode } = useSend();
   const { user } = useContext(UserContext);
-  const { data, error, isLoading, sendData, statusCode } = useSend();
 
   const showToast = (type, title, subtitle) => {
     Toast.show({
@@ -27,154 +25,73 @@ export const HomeScreen = () => {
     });
   };
 
-  useEffect(() => {
-    if (Object.keys(data).length !== 0 && statusCode !== 0) {
-      if (statusCode === 201) {
-        if (connection && connection.state === HubConnectionState.Connected) {
-          connection.invoke("SendMessageToB", "Turno iniciado");
-        }
-        if (isTurnStarted) {
-          sendCoordinatesToServer();
-        }
-      } else {
-        showToast("error", data.singleData.mensaje);
-      }
-    }
-  }, [data, statusCode]);
 
-  const sendRequestToAPI = async (wDay_start_finish) => {
-    try {
-      await sendData(
-        "/WorkingDay/SetWorkingDay",
-        {
-          accept: "text/plain",
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${user.results}`,
-        },
-        {
-          id: 0,
-          wDay_start_finish: wDay_start_finish,
-          person_identification: user.userinfo.id,
-          wDay_condition: true,
-        }
+  useEffect(() => {
+    fetchData(`/Assignment/GetInfoDriver?id=${user.userinfo.id}`) // Necesito el endpoint de pacotilla
+  }, [])
+
+  useEffect(() => {
+    const sendRequestToAPI = async (wDay_start_finish) => {
+      try {
+        await sendData(
+          "/WorkingDay/SetWorkingDay",
+          {
+            accept: "text/plain",
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${user.results}`,
+          },
+          {
+            id: 0,
+            wDay_start_finish: wDay_start_finish,
+            person_identification: user.userinfo.id,
+            wDay_condition: true,
+          }
+        );
+      } catch (error) {
+        console.error("Error al realizar la solicitud a la API:", error.message);
+      }
+    };
+
+    if (isTurnStarted === null) {
+      sendRequestToAPI(isTurnStarted)
+    }
+
+  }, [isTurnStarted])
+
+  const handleStartTurn = async () => {
+    setModalVisible(false);
+    setIsTurnStarted(startTime(data[0].assignmentStartDate, data[0].assignmentStartTime));
+    if (isTurnStarted) {
+      if (statusCode == 201) {
+        startLocation();
+      }
+    } else {
+      showToast(
+        "error",
+        "No tiene turno asignado",
+        "Validar que se a registrado su tanda laboral"
       );
-    } catch (error) {
-      console.error("Error al realizar la solicitud a la API:", error.message);
     }
   };
-
-  useEffect(() => {
-    const createConnection = async () => {
-      if (connection && connection.state === HubConnectionState.Disconnected) {
-        try {
-          await connection.start();
-          console.log("Conexión SignalR establecida con éxito.");
-        } catch (error) {
-          console.error("Error al iniciar la conexión SignalR:", error);
-        }
-      } else if (!connection) {
-        const hubConnection = new HubConnectionBuilder()
-          .withUrl("https://omsappapi.azurewebsites.net/Hubs/ChatHub")
-          .build();
-
-        hubConnection.on("ReceiveCoordinates", (message) => {
-          console.log(`Coordenadas recibidas desde el servidor: ${message}`);
-        });
-
-        setConnection(hubConnection);
-
-        try {
-          await hubConnection.start();
-          console.log("Conexión SignalR establecida con éxito.");
-        } catch (error) {
-          console.error("Error al iniciar la conexión SignalR:", error);
-        }
-      } else {
-        console.warn(
-          "La conexión ya está en un estado diferente a Disconnected."
+  const handleEndTurn = () => {
+    setIsTurnStarted(endTime(data[0].assignmentFinishDate, data[0].assignmentFinishTime));
+    if (!isTurnStarted) {
+      if (statusCode == 201) {
+        stopLocation();
+        stopRealtime();
+        showToast(
+          "success",
+          "Ha finalizado su turno",
+          "La transmisión de su localización ha sido concluido exitosamente"
         );
       }
-    };
-
-    createConnection();
-
-    return () => {
-      if (connection && connection.state === HubConnectionState.Connected) {
-        connection.stop();
-        console.log("Conexión SignalR detenida.");
-      }
-    };
-  }, [connection]);
-
-  const sendCoordinatesToServer = async () => {
-    let { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== "granted") {
-      console.error("Permiso de ubicación denegado");
-      return;
-    }
-
-    const newIntervalId = setInterval(async () => {
-      try {
-        let location = await Location.getCurrentPositionAsync({});
-        const latitude = location.coords.latitude;
-        const longitude = location.coords.longitude;
-        const message = `Latitud: ${latitude}, Longitud: ${longitude}`;
-
-        if (connection && connection.state === HubConnectionState.Connected) {
-          connection
-            .invoke("SendMessageToB", message)
-            .then(() => {
-              console.log(`Coordenadas enviadas al servidor: ${message}`);
-            })
-            .catch((error) => {
-              console.error("Error al enviar las coordenadas:", error);
-            });
-        } else {
-          console.error(
-            "La conexión SignalR no está en estado Connected para enviar coordenadas."
-          );
-        }
-      } catch (error) {
-        console.error("Error al obtener las coordenadas:", error);
-      }
-    }, 1000);
-
-    setIntervalId(newIntervalId);
-  };
-
-  const stopSendingCoordinates = () => {
-    if (intervalId) {
-      clearInterval(intervalId);
-      setIntervalId(null);
-    }
-  };
-
-  const handleStartTurn = () => {
-    console.log("Iniciar turno");
-    setModalVisible(!modalVisible);
-    sendRequestToAPI(true);
-    if (statusCode === 201) {
-      setIsTurnStarted(true);
-      setStartButtonTitle("Terminar Turno");
+    } else {
       showToast(
-        "success",
-        "Ha iniciado su turno",
-        "La transmisión de su localización ha sido iniciado exitosamente"
+        "error",
+        "Su turno no ha concluido",
+        "Validar la hora de cierre de su turno"
       );
     }
-  };
-
-  const handleEndTurn = () => {
-    console.log("Terminar turno");
-    stopSendingCoordinates();
-    showToast(
-      "success",
-      "Ha finalizado su turno",
-      "La transmisión de su localización ha sido concluido exitosamente"
-    );
-    setStartButtonTitle("Iniciar Turno");
-    sendRequestToAPI(false);
-    setIsTurnStarted(!isTurnStarted);
   };
 
   return (
@@ -222,16 +139,25 @@ export const HomeScreen = () => {
       </Modal>
       <View style={styles.outerCircle}>
         <View style={styles.innnerCircle}>
-          <Button
-            title={startButtonTitle}
-            width={250}
-            height={50}
-            backgroundColor={isTurnStarted ? Color.red : Color.aqua_500}
-            onPress={
-              isTurnStarted ? handleEndTurn : () => setModalVisible(true)
-            }
-            textColor="white"
-          />
+          {isTurnStarted ? (
+            <SubmitButton
+              title="Finalizar Turno"
+              width={250}
+              height={50}
+              backgroundColor={Color.red}
+              textColor="white"
+              onPress={() => handleEndTurn()}
+            />
+          ) : (
+            <SubmitButton
+              title="Iniciar Turno"
+              width={250}
+              height={50}
+              backgroundColor={Color.aqua_500}
+              textColor="white"
+              onPress={() => setModalVisible(true)}
+            />
+          )}
         </View>
       </View>
       <View
