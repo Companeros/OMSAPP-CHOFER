@@ -27,7 +27,7 @@ export const HomeScreen = () => {
 
 
   useEffect(() => {
-    fetchData(`/Assignment/GetInfoDriver?id=${user.userinfo.id}`) // Necesito el endpoint de pacotilla
+    fetchData(`/Assignment/GetInfoDriver`, { id: user.userinfo.id })
   }, [])
 
   useEffect(() => {
@@ -60,7 +60,7 @@ export const HomeScreen = () => {
 
   const handleStartTurn = async () => {
     setModalVisible(false);
-    setIsTurnStarted(startTime(data[0].assignmentStartDate, data[0].assignmentStartTime));
+    setIsTurnStarted(startTime(data[0].assignmentStartDate, data[0].assignmentStartTime, data[0].assignmentFinishDate, data[0].assignmentFinishTime));
     if (isTurnStarted) {
       if (statusCode == 201) {
         startLocation();
