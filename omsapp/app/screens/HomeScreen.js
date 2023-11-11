@@ -3,16 +3,17 @@ import { Text, StyleSheet, View, Modal } from "react-native";
 import { Color, FontSize } from "../styles/GlobalStyles";
 import SubmitButton from "../molecules/SubmitButton";
 import Toast from "react-native-toast-message";
-import { stopRealtime } from "../services/realtime";
+import { sendRealtime, stopRealtime } from "../services/realtime";
 import { startLocation, stopLocation } from "../services/location";
 import { useFetch, useSend } from "../services/hooks";
 import { UserContext } from '../../UserContext';
 import { endTime, startTime } from "../services/validation";
+import * as TaskManager from "expo-task-manager";
 
 export const HomeScreen = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [isTurnStarted, setIsTurnStarted] = useState(null);
-  const { data, fetchData } = useFetch();
+  const { data: info, fetchData } = useFetch();
   const { error, sendData, statusCode } = useSend();
   const { user } = useContext(UserContext);
 
@@ -25,6 +26,13 @@ export const HomeScreen = () => {
     });
   };
 
+  TaskManager.defineTask("background-location-task", ({ data: { locations }, error }) => {
+    if (error) {
+      console.log(error.message);
+      return;
+    }
+    sendRealtime(locations[0].coords.latitude, locations[0].coords.longitude, info[0].routeId, info[0].bRouteDescription, info[0].busId)
+  });
 
   useEffect(() => {
     fetchData(`/Assignment/GetInfoDriver`, { id: user.userinfo.id })
@@ -52,16 +60,17 @@ export const HomeScreen = () => {
       }
     };
 
-    if (isTurnStarted === null) {
+    if (isTurnStarted !== null) {
       sendRequestToAPI(isTurnStarted)
     }
 
   }, [isTurnStarted])
 
-  const handleStartTurn = async () => {
+  const handleStartTurn = () => {
     setModalVisible(false);
-    setIsTurnStarted(startTime(data[0].assignmentStartDate, data[0].assignmentStartTime, data[0].assignmentFinishDate, data[0].assignmentFinishTime));
-    if (isTurnStarted) {
+    setIsTurnStarted(startTime(info[0].assignmentStartDate, info[0].assignmentStartTime, info[0].assignmentFinishDate, info[0].assignmentFinishTime));
+    console.log(isTurnStarted, statusCode)
+    if (isTurnStarted || isTurnStarted !== null) {
       if (statusCode == 201) {
         startLocation();
       }
@@ -74,9 +83,10 @@ export const HomeScreen = () => {
     }
   };
   const handleEndTurn = () => {
-    setIsTurnStarted(endTime(data[0].assignmentFinishDate, data[0].assignmentFinishTime));
-    if (!isTurnStarted) {
+    setIsTurnStarted(endTime(info[0].assignmentFinishDate, info[0].assignmentFinishTime));
+    if (!isTurnStarted || isTurnStarted !== null) {
       if (statusCode == 201) {
+        console.log(statusCode)
         stopLocation();
         stopRealtime();
         showToast(

@@ -9,14 +9,14 @@ hubConnection.onreconnected(() => {
   console.log("Conexión restablecida");
 });
 
-export const sendRealtime = async (latitude : string | null, longitude : string | null, route : number) => {
+export const sendRealtime = async (latitude : string | null, longitude : string | null, routeId : number, route: string, busId : string ) => {
   try {
     if (hubConnection.state === HubConnectionState.Disconnected) {
       await hubConnection.start();
       console.log("Conexión iniciada");
     }
     if (hubConnection.state === HubConnectionState.Connected) {
-      const message = `Latitud: ${latitude}, Longitud: ${longitude}, Route: ${route}`;
+      const message = `Latitud: ${latitude}, Longitud: ${longitude}, RouteId: ${routeId}, Route: ${route}, BusId: ${busId}`;
       hubConnection
         .invoke("SendMessageToB", message)
         .then(() => {

@@ -53,6 +53,7 @@ export const useSend = () => {
       };
 
       await axios.request(options).then((response) => {
+        console.log(response)
         setData(response.data);
         setStatusCode(response.status);
       });
