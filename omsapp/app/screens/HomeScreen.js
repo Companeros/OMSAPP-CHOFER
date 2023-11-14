@@ -7,14 +7,13 @@ import { sendRealtime, stopRealtime } from "../services/realtime";
 import { startLocation, stopLocation } from "../services/location";
 import { useFetch, useSend } from "../services/hooks";
 import { UserContext } from '../../UserContext';
-import { endTime, startTime } from "../services/validation";
 import * as TaskManager from "expo-task-manager";
 
 export const HomeScreen = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [isTurnStarted, setIsTurnStarted] = useState(null);
   const { data: info, fetchData } = useFetch();
-  const { error, sendData, statusCode } = useSend();
+  const { data: message, error, sendData, statusCode } = useSend();
   const { user } = useContext(UserContext);
 
   const showToast = (type, title, subtitle) => {
@@ -38,70 +37,64 @@ export const HomeScreen = () => {
     fetchData(`/Assignment/GetInfoDriver`, { id: user.userinfo.id })
   }, [])
 
-  useEffect(() => {
-    const sendRequestToAPI = async (wDay_start_finish) => {
-      try {
-        await sendData(
-          "/WorkingDay/SetWorkingDay",
-          {
-            accept: "text/plain",
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${user.results}`,
-          },
-          {
-            id: 0,
-            wDay_start_finish: wDay_start_finish,
-            person_identification: user.userinfo.id,
-            wDay_condition: true,
-          }
-        );
-      } catch (error) {
-        console.error("Error al realizar la solicitud a la API:", error.message);
-      }
-    };
-
-    if (isTurnStarted !== null) {
-      sendRequestToAPI(isTurnStarted)
-    }
-
-  }, [isTurnStarted])
-
-  const handleStartTurn = () => {
+  const handleStartTurn = async () => {
     setModalVisible(false);
-    setIsTurnStarted(startTime(info[0].assignmentStartDate, info[0].assignmentStartTime, info[0].assignmentFinishDate, info[0].assignmentFinishTime));
-    console.log(isTurnStarted, statusCode)
-    if (isTurnStarted || isTurnStarted !== null) {
-      if (statusCode == 201) {
-        startLocation();
+    setIsTurnStarted(true)
+    await sendData(
+      "/WorkingDay/SetWorkingDay",
+      {
+        accept: "text/plain",
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${user.results}`,
+      },
+      {
+        id: 0,
+        wDay_start_finish: true,
+        person_identification: user.userinfo.id,
+        wDay_condition: true,
+      }).then(() => {
+        console.log(statusCode)
+        startLocation()
       }
-    } else {
+    ).catch(() =>
       showToast(
         "error",
         "No tiene turno asignado",
         "Validar que se a registrado su tanda laboral"
-      );
-    }
+      ))
   };
-  const handleEndTurn = () => {
-    setIsTurnStarted(endTime(info[0].assignmentFinishDate, info[0].assignmentFinishTime));
-    if (!isTurnStarted || isTurnStarted !== null) {
-      if (statusCode == 201) {
+
+  const handleEndTurn = async () => {
+    setIsTurnStarted(false)
+    await sendData(
+      "/WorkingDay/SetWorkingDay",
+      {
+        accept: "text/plain",
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${user.results}`,
+      },
+      {
+        id: 0,
+        wDay_start_finish: false,
+        person_identification: user.userinfo.id,
+        wDay_condition: true,
+      }).then(() => {
         console.log(statusCode)
-        stopLocation();
-        stopRealtime();
+        stopLocation()
+        stopRealtime()
         showToast(
           "success",
           "Ha finalizado su turno",
           "La transmisión de su localización ha sido concluido exitosamente"
-        );
+        )
       }
-    } else {
+    ).catch(
       showToast(
         "error",
         "Su turno no ha concluido",
         "Validar la hora de cierre de su turno"
-      );
-    }
+      )
+    )
   };
 
   return (

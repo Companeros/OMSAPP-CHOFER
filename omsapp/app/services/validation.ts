@@ -10,7 +10,7 @@ export const startTime = (startDate : string, startTime: string, endDate : strin
     if (start < now && now < end ) {
         return(true)
       } else {
-        return (null)  
+        return (false)  
       } 
 }
 
@@ -20,6 +20,6 @@ export const endTime = (endDate : string, endTime: string) => {
     if (date > now || date == now) {
         return(false)
       } else {
-        return (null)
+        return (true)
       } 
 }
