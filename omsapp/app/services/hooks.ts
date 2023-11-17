@@ -6,6 +6,7 @@ export const useFetch = () => {
   const [data, setData] = useState({});
   const [isLoading, setIsLoading] = useState(false);
 
+  
   const fetchData = async (
     endpoint: string,
     params: object | null,
@@ -40,9 +41,15 @@ export const useSend = () => {
   const [data, setData] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [statusCode, setStatusCode] = useState(0);
-
+  const clearState = () => {
+    setError(null);
+    setData({});
+    setIsLoading(false);
+    setStatusCode(0);
+  };
   const sendData = async (endpoint: string, headers: any, body: any) => {
     setIsLoading(true);
+    
     try {
       let options;
       options = {
@@ -51,16 +58,21 @@ export const useSend = () => {
         headers: { ...headers },
         data: { ...body },
       };
-
-      await axios.request(options).then((response) => {
+   
+      
+      const response = await axios.request(options);
+      
+      console.log("succes status, ",response.status)
         setData(response.data);
         setStatusCode(response.status);
-      });
+
     } catch (e: any) {
+console.log("error status, ",e.response.status)
+      setStatusCode(e.response.status)
       setError(e.message);
     } finally {
       setIsLoading(false);
     }
   };
-  return { data, error, isLoading, sendData, statusCode };
+  return { data, error, isLoading, sendData, statusCode,clearState  };
 };

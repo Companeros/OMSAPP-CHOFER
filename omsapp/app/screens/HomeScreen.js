@@ -11,10 +11,12 @@ import * as TaskManager from "expo-task-manager";
 
 export const HomeScreen = () => {
   const [modalVisible, setModalVisible] = useState(false);
-  const [isTurnStarted, setIsTurnStarted] = useState(null);
+  const [isTurnStarted, setIsTurnStarted] = useState(false);
   const { data: info, fetchData } = useFetch();
-  const { data: message, error, sendData, statusCode } = useSend();
+  const { data: message, error, sendData, statusCode,clearState  } = useSend();
   const { user } = useContext(UserContext);
+  const [statusChanged, setStatusChanged] = useState(false);
+
 
   const showToast = (type, title, subtitle) => {
     Toast.show({
@@ -30,17 +32,83 @@ export const HomeScreen = () => {
       console.log(error.message);
       return;
     }
-    sendRealtime(locations[0].coords.latitude, locations[0].coords.longitude, info[0].routeId, info[0].bRouteDescription, info[0].busId)
+
+   
+       sendRealtime(locations[0].coords.latitude, locations[0].coords.longitude, info[0].routeId, info[0].bRouteDescription, info[0].busId)
+     
+ 
+  
   });
 
   useEffect(() => {
     fetchData(`/Assignment/GetInfoDriver`, { id: user.userinfo.id })
   }, [])
+  useEffect(() => {
+    ToastStartBiffurc()
+  }, [statusCode])
 
+
+  const ToastStartBiffurc =  () =>{
+    let title1="";
+    let Type1="success";
+    let subtitle2="";
+    if (statusCode == 201)
+    {
+      if(isTurnStarted== false)
+      {
+        setIsTurnStarted(true)
+      startLocation();
+      Type1= "success";
+      title1 =  "Ha iniciado su turno";
+      subtitle2="La transmisión de su localización ha sido iniciada exitosamente";
+    }
+    else if (isTurnStarted== true){
+      setIsTurnStarted(false)
+      Type1= "success";
+      title1 =  "Ha finalizado su turno";
+      subtitle2="La transmisión de su localización ha sido concluido exitosamente";
+      stopLocation()
+        stopRealtime()
+    }
+     
+
+
+    }
+ else if(statusCode == 406)
+    {
+      Type1 = "error";
+      title1 = "Fuera de tiempo";
+      subtitle2 = "Validar que su horario laboral";
+  }
+  else if(statusCode == 404)
+  {
+    Type1 = "error";
+    title1 = "No tiene turno asignado";
+    subtitle2 = "Validar que se a registrado su tanda laboral";
+ 
+}
+else if (statusCode == 200)
+{
+  Type1 = "error";
+  title1 = "Turno ya iniciado";
+  subtitle2 = "Este turno ya ha sido iniciado";
+}
+if(statusCode != 0) {
+
+
+  showToast(
+    Type1,
+    title1 ,
+    subtitle2
+  )
+  clearState()
+}
+  }
   const handleStartTurn = async () => {
     setModalVisible(false);
-    setIsTurnStarted(true)
-    await sendData(
+
+try{
+     await sendData(
       "/WorkingDay/SetWorkingDay",
       {
         accept: "text/plain",
@@ -52,21 +120,22 @@ export const HomeScreen = () => {
         wDay_start_finish: true,
         person_identification: user.userinfo.id,
         wDay_condition: true,
-      }).then(() => {
-        console.log(statusCode)
-        startLocation()
+      })
+        console.log("status ",statusCode)
+       
+      
+      
+      
       }
-    ).catch(() =>
-      showToast(
-        "error",
-        "No tiene turno asignado",
-        "Validar que se a registrado su tanda laboral"
-      ))
+      catch (error) {
+        // Manejar el error de la llamada a la API
+        console.error("Error al iniciar el turno:", error);
+        ToastStartBiffurc(); // Mostrar el mensaje de error correspondiente
+      }
   };
 
   const handleEndTurn = async () => {
-    setIsTurnStarted(false)
-    await sendData(
+     sendData(
       "/WorkingDay/SetWorkingDay",
       {
         accept: "text/plain",
@@ -79,21 +148,12 @@ export const HomeScreen = () => {
         person_identification: user.userinfo.id,
         wDay_condition: true,
       }).then(() => {
-        console.log(statusCode)
-        stopLocation()
-        stopRealtime()
-        showToast(
-          "success",
-          "Ha finalizado su turno",
-          "La transmisión de su localización ha sido concluido exitosamente"
-        )
+        console.log("status ",statusCode)
+        
+        
       }
     ).catch(
-      showToast(
-        "error",
-        "Su turno no ha concluido",
-        "Validar la hora de cierre de su turno"
-      )
+      
     )
   };
 
