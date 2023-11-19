@@ -16,7 +16,7 @@ import { useNavigation } from "@react-navigation/native";
 import Toast from "react-native-toast-message";
 import { useUser } from "../../UserContext"; // Importa useUser para acceder al contexto
 import { useSend } from "../services/hooks";
-
+import { encryptData } from "../services/Criptography"
 const Login = () => {
   const initialState = {
     user: "",
@@ -52,7 +52,12 @@ const Login = () => {
   };
 
   const handleLogin = async () => {
-    await sendData("/Users/login", "*/*", formData);
+    const data = {
+      user: encryptData(formData.user),
+      password: encryptData(formData.password)
+    }
+    console.log(data)
+    await sendData("/Users/login", "*/*", data);
   };
 
   useEffect(() => {

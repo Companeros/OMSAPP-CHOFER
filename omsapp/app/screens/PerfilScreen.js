@@ -3,10 +3,11 @@ import { View, Text, StyleSheet, Image } from "react-native";
 import { UserContext } from "../../UserContext";
 import { Color } from "../styles/GlobalStyles";
 import SubmitButton from "../molecules/SubmitButton";
+import { decryptData} from "../services/Criptography"
 
 export const PerfilScreen = ({ navigation }) => {
   const { user } = useContext(UserContext); // Accede a las propiedades del contexto
-
+  console.log(user.userinfo.tittle)
   const handleSignOut = () => {
     navigation.navigate("StartScreen"); // Redirige a la pantalla HomeScreen
   };
@@ -34,15 +35,15 @@ export const PerfilScreen = ({ navigation }) => {
         <View style={styles.form}>
           <View style={styles.userInfo}>
             <Text style={styles.label}>Nombre:</Text>
-            <Text style={styles.value}>{user.userinfo.tittle}</Text>
+            <Text style={styles.value}>{decryptData(user.userinfo.tittle)}</Text>
           </View>
           <View style={styles.userInfo}>
             <Text style={styles.label}>Número:</Text>
-            <Text style={styles.value}>{user.userinfo.personPhone}</Text>
+            <Text style={styles.value}>{decryptData(user.userinfo.personPhone)}</Text>
           </View>
           <View style={styles.userInfo}>
             <Text style={styles.label}>Licencia:</Text>
-            <Text style={styles.value}>{user.userinfo.personLicense}</Text>
+            <Text style={styles.value}>{decryptData(user.userinfo.personLicense)}</Text>
           </View>
         </View>
         <SubmitButton

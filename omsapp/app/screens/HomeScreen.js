@@ -8,15 +8,13 @@ import { startLocation, stopLocation } from "../services/location";
 import { useFetch, useSend } from "../services/hooks";
 import { UserContext } from '../../UserContext';
 import * as TaskManager from "expo-task-manager";
-
+import { encryptData } from "../services/Criptography"
 export const HomeScreen = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [isTurnStarted, setIsTurnStarted] = useState(false);
   const { data: info, fetchData } = useFetch();
   const { data: message, error, sendData, statusCode,clearState  } = useSend();
   const { user } = useContext(UserContext);
-  const [statusChanged, setStatusChanged] = useState(false);
-
 
   const showToast = (type, title, subtitle) => {
     Toast.show({
@@ -32,9 +30,9 @@ export const HomeScreen = () => {
       console.log(error.message);
       return;
     }
-
+     
    
-       sendRealtime(locations[0].coords.latitude, locations[0].coords.longitude, info[0].routeId, info[0].bRouteDescription, info[0].busId)
+       sendRealtime(encryptData(locations[0].coords.latitude), encryptData(locations[0].coords.longitude), info[0].routeId, info[0].bRouteDescription, info[0].busId)
      
  
   

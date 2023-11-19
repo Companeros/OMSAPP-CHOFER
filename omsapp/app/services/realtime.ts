@@ -17,10 +17,27 @@ export const sendRealtime = async (latitude : string | null, longitude : string 
     }
     if (hubConnection.state === HubConnectionState.Connected) {
       const message = `Latitud: ${latitude}, Longitud: ${longitude}, RouteId: ${routeId}, Route: ${route}, BusId: ${busId}`;
+      interface Coordenadas {
+        latitude: string;
+        longitude: string;
+        RouteId: string;
+        Route: string;
+        BusId: string;
+        ConnectionId: string;
+      }
+      const coordenadasObj: Coordenadas = {
+        latitude: latitude || "",
+        longitude: longitude || "",
+        RouteId: routeId.toString(),
+        Route: route,
+        BusId: busId,
+        ConnectionId: "connection123",
+      };
+      console.log(coordenadasObj)
       hubConnection
-        .invoke("SendMessageToB", message)
+        .invoke("SendMessageToB", coordenadasObj)
         .then(() => {
-          console.log(`Coordenadas enviadas al servidor: ${message}`);
+          console.log(`Coordenadas enviadas al servidor: ${coordenadasObj}`);
         })
         .catch((error) => {
           console.error("Error al enviar las coordenadas:", error);
