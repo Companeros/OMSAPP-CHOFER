@@ -18,8 +18,8 @@ export const endTime = (endDate : string, endTime: string) => {
     const date = new Date(endDate.split("T")[0] + "T"+ endTime)
     const now =  new Date();
     if (date > now || date == now) {
-        return(true)
+        return(false)
       } else {
-        return (false)
+        return (true)
       } 
 }

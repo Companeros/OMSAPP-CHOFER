@@ -3,17 +3,17 @@ import { Text, StyleSheet, View, Modal } from "react-native";
 import { Color, FontSize } from "../styles/GlobalStyles";
 import SubmitButton from "../molecules/SubmitButton";
 import Toast from "react-native-toast-message";
-import { stopRealtime } from "../services/realtime";
+import { sendRealtime, stopRealtime } from "../services/realtime";
 import { startLocation, stopLocation } from "../services/location";
 import { useFetch, useSend } from "../services/hooks";
 import { UserContext } from '../../UserContext';
-import { endTime, startTime } from "../services/validation";
-
+import * as TaskManager from "expo-task-manager";
+import { encryptData } from "../services/Criptography"
 export const HomeScreen = () => {
   const [modalVisible, setModalVisible] = useState(false);
-  const [isTurnStarted, setIsTurnStarted] = useState(null);
-  const { data, fetchData } = useFetch();
-  const { error, sendData, statusCode } = useSend();
+  const [isTurnStarted, setIsTurnStarted] = useState(false);
+  const { data: info, fetchData } = useFetch();
+  const { data: message, error, sendData, statusCode,clearState  } = useSend();
   const { user } = useContext(UserContext);
 
   const showToast = (type, title, subtitle) => {
@@ -25,73 +25,134 @@ export const HomeScreen = () => {
     });
   };
 
-
-  useEffect(() => {
-    fetchData(`/Assignment/GetInfoDriver?id=${user.userinfo.id}`) // Necesito el endpoint de pacotilla
-  }, [])
-
-  useEffect(() => {
-    const sendRequestToAPI = async (wDay_start_finish) => {
-      try {
-        await sendData(
-          "/WorkingDay/SetWorkingDay",
-          {
-            accept: "text/plain",
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${user.results}`,
-          },
-          {
-            id: 0,
-            wDay_start_finish: wDay_start_finish,
-            person_identification: user.userinfo.id,
-            wDay_condition: true,
-          }
-        );
-      } catch (error) {
-        console.error("Error al realizar la solicitud a la API:", error.message);
-      }
-    };
-
-    if (isTurnStarted === null) {
-      sendRequestToAPI(isTurnStarted)
+  TaskManager.defineTask("background-location-task", ({ data: { locations }, error }) => {
+    if (error) {
+      console.log(error.message);
+      return;
     }
+     
+   
+       sendRealtime(encryptData(locations[0].coords.latitude), encryptData(locations[0].coords.longitude), info[0].routeId, info[0].bRouteDescription, info[0].busId)
+     
+ 
+  
+  });
 
-  }, [isTurnStarted])
+  useEffect(() => {
+    fetchData(`/Assignment/GetInfoDriver`, { id: user.userinfo.id })
+  }, [])
+  useEffect(() => {
+    ToastStartBiffurc()
+  }, [statusCode])
 
+
+  const ToastStartBiffurc =  () =>{
+    let title1="";
+    let Type1="success";
+    let subtitle2="";
+    if (statusCode == 201)
+    {
+      if(isTurnStarted== false)
+      {
+        setIsTurnStarted(true)
+      startLocation();
+      Type1= "success";
+      title1 =  "Ha iniciado su turno";
+      subtitle2="La transmisión de su localización ha sido iniciada exitosamente";
+    }
+    else if (isTurnStarted== true){
+      setIsTurnStarted(false)
+      Type1= "success";
+      title1 =  "Ha finalizado su turno";
+      subtitle2="La transmisión de su localización ha sido concluido exitosamente";
+      stopLocation()
+        stopRealtime()
+    }
+     
+
+
+    }
+ else if(statusCode == 406)
+    {
+      Type1 = "error";
+      title1 = "Fuera de tiempo";
+      subtitle2 = "Validar que su horario laboral";
+  }
+  else if(statusCode == 404)
+  {
+    Type1 = "error";
+    title1 = "No tiene turno asignado";
+    subtitle2 = "Validar que se a registrado su tanda laboral";
+ 
+}
+else if (statusCode == 200)
+{
+  Type1 = "error";
+  title1 = "Turno ya iniciado";
+  subtitle2 = "Este turno ya ha sido iniciado";
+}
+if(statusCode != 0) {
+
+
+  showToast(
+    Type1,
+    title1 ,
+    subtitle2
+  )
+  clearState()
+}
+  }
   const handleStartTurn = async () => {
     setModalVisible(false);
-    setIsTurnStarted(startTime(data[0].assignmentStartDate, data[0].assignmentStartTime));
-    if (isTurnStarted) {
-      if (statusCode == 201) {
-        startLocation();
+
+try{
+     await sendData(
+      "/WorkingDay/SetWorkingDay",
+      {
+        accept: "text/plain",
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${user.results}`,
+      },
+      {
+        id: 0,
+        wDay_start_finish: true,
+        person_identification: user.userinfo.id,
+        wDay_condition: true,
+      })
+        console.log("status ",statusCode)
+       
+      
+      
+      
       }
-    } else {
-      showToast(
-        "error",
-        "No tiene turno asignado",
-        "Validar que se a registrado su tanda laboral"
-      );
-    }
+      catch (error) {
+        // Manejar el error de la llamada a la API
+        console.error("Error al iniciar el turno:", error);
+        ToastStartBiffurc(); // Mostrar el mensaje de error correspondiente
+      }
   };
-  const handleEndTurn = () => {
-    setIsTurnStarted(endTime(data[0].assignmentFinishDate, data[0].assignmentFinishTime));
-    if (!isTurnStarted) {
-      if (statusCode == 201) {
-        stopLocation();
-        stopRealtime();
-        showToast(
-          "success",
-          "Ha finalizado su turno",
-          "La transmisión de su localización ha sido concluido exitosamente"
-        );
+
+  const handleEndTurn = async () => {
+     sendData(
+      "/WorkingDay/SetWorkingDay",
+      {
+        accept: "text/plain",
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${user.results}`,
+      },
+      {
+        id: 0,
+        wDay_start_finish: false,
+        person_identification: user.userinfo.id,
+        wDay_condition: true,
+      }).then(() => {
+        console.log("status ",statusCode)
+        
+        
       }
-    } else {
-      showToast(
-        "error",
-        "Su turno no ha concluido",
-        "Validar la hora de cierre de su turno"
-      );
-    }
+    ).catch(
+      
+    )
   };
 
   return (

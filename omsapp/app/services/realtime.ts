@@ -9,18 +9,35 @@ hubConnection.onreconnected(() => {
   console.log("Conexión restablecida");
 });
 
-export const sendRealtime = async (latitude : string | null, longitude : string | null, route : number) => {
+export const sendRealtime = async (latitude : string | null, longitude : string | null, routeId : number, route: string, busId : string ) => {
   try {
     if (hubConnection.state === HubConnectionState.Disconnected) {
       await hubConnection.start();
       console.log("Conexión iniciada");
     }
     if (hubConnection.state === HubConnectionState.Connected) {
-      const message = `Latitud: ${latitude}, Longitud: ${longitude}, Route: ${route}`;
+      const message = `Latitud: ${latitude}, Longitud: ${longitude}, RouteId: ${routeId}, Route: ${route}, BusId: ${busId}`;
+      interface Coordenadas {
+        latitude: string;
+        longitude: string;
+        RouteId: string;
+        Route: string;
+        BusId: string;
+        ConnectionId: string;
+      }
+      const coordenadasObj: Coordenadas = {
+        latitude: latitude || "",
+        longitude: longitude || "",
+        RouteId: routeId.toString(),
+        Route: route,
+        BusId: busId,
+        ConnectionId: "connection123",
+      };
+      console.log(coordenadasObj)
       hubConnection
-        .invoke("SendMessageToB", message)
+        .invoke("SendMessageToB", coordenadasObj)
         .then(() => {
-          console.log(`Coordenadas enviadas al servidor: ${message}`);
+          console.log(`Coordenadas enviadas al servidor: ${coordenadasObj}`);
         })
         .catch((error) => {
           console.error("Error al enviar las coordenadas:", error);
