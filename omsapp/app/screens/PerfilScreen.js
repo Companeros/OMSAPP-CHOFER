@@ -4,11 +4,36 @@ import { UserContext } from "../../UserContext";
 import { Color } from "../styles/GlobalStyles";
 import SubmitButton from "../molecules/SubmitButton";
 import { decryptData} from "../services/Criptography"
+import { stopLocation } from "../services/location";
+import { stopRealtime } from "../services/realtime";
+import { useSend } from "../services/hooks";
+
 
 export const PerfilScreen = ({ navigation }) => {
   const { user } = useContext(UserContext); // Accede a las propiedades del contexto
+  const {sendData, statusCode  } = useSend();
   console.log(user.userinfo.tittle)
   const handleSignOut = () => {
+     sendData(
+      "/WorkingDay/SetWorkingDay",
+      {
+        accept: "text/plain",
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${user.results}`,
+      },
+      {
+        id: 0,
+        wDay_start_finish: false,
+        person_identification: user.userinfo.id,
+        wDay_condition: true,
+      }).then(() => {
+        console.log("status ",statusCode)
+        stopRealtime();
+        stopLocation();
+      }
+    ).catch(
+      
+    )
     navigation.navigate("StartScreen"); // Redirige a la pantalla HomeScreen
   };
 
