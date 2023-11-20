@@ -1,5 +1,12 @@
 import { HubConnectionBuilder, HubConnectionState } from "@microsoft/signalr";
-
+interface Coordenadas {
+  latitude: string | null;
+  longitude: string| null;
+  RouteId: string| null;
+  Route: string| null;
+  BusId: string| null;
+  ConnectionId: string| null;
+}
 const hubConnection = new HubConnectionBuilder()
   .withUrl("https://omsappapi.azurewebsites.net/Hubs/ChatHub")
   .withAutomaticReconnect() // Enable automatic reconnection
@@ -17,14 +24,7 @@ export const sendRealtime = async (latitude : string | null, longitude : string 
     }
     if (hubConnection.state === HubConnectionState.Connected) {
       const message = `Latitud: ${latitude}, Longitud: ${longitude}, RouteId: ${routeId}, Route: ${route}, BusId: ${busId}`;
-      interface Coordenadas {
-        latitude: string;
-        longitude: string;
-        RouteId: string;
-        Route: string;
-        BusId: string;
-        ConnectionId: string;
-      }
+
       const coordenadasObj: Coordenadas = {
         latitude: latitude || "",
         longitude: longitude || "",
@@ -53,7 +53,15 @@ export const sendRealtime = async (latitude : string | null, longitude : string 
 
 export const stopRealtime = async () => {
   if (hubConnection.state !== HubConnectionState.Disconnected) {
-    await hubConnection.invoke("SendMessageToB", "").then()
+    const coordenadasObj: Coordenadas = {
+      latitude: null,
+      longitude: null ,
+      RouteId: null,
+      Route: null,
+      BusId: null,
+      ConnectionId: "connection123",
+    };
+    await hubConnection.invoke("SendMessageToB", coordenadasObj).then()
     await hubConnection.stop();
     console.log("Conexión finalizada desde la Aplicación B");
   }
