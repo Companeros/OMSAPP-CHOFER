@@ -17,6 +17,12 @@ export const startLocation = async () => {
 };
 
 export const stopLocation = async () => {
-  await Location.stopLocationUpdatesAsync(LOCATION_TASK_NAME);
-  console.log("Location updates stopped.");
+
+  if(Location.hasStartedLocationUpdatesAsync(LOCATION_TASK_NAME)){
+    await Location.stopLocationUpdatesAsync(LOCATION_TASK_NAME);
+    console.log("Location updates stopped.");
+  }
+  else{
+    console.log("Location updates not started.");
+  }
 };
