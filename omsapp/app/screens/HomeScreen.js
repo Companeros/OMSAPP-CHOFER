@@ -30,16 +30,12 @@ export const HomeScreen = () => {
       console.log(error.message);
       return;
     }
-     
-   
        sendRealtime(encryptData(locations[0].coords.latitude), encryptData(locations[0].coords.longitude), info[0].routeId, info[0].bRouteDescription, info[0].busId)
      
- 
-  
   });
 
   useEffect(() => {
-    fetchData(`/Assignment/GetInfoDriver`, { id: user.userinfo.id })
+    fetchData(`/Assignment/GetInfoDriver`, { id: user.userinfo.id });
   }, [])
   useEffect(() => {
     ToastStartBiffurc()
