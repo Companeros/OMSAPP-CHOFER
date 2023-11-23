@@ -28,12 +28,13 @@ export const PerfilScreen = ({ navigation }) => {
         wDay_condition: true,
       }).then(() => {
         console.log("status ",statusCode)
-        stopRealtime();
-        stopLocation();
+
       }
     ).catch(
       
     )
+    stopRealtime();
+    stopLocation();
     navigation.navigate("StartScreen"); // Redirige a la pantalla HomeScreen
   };
 

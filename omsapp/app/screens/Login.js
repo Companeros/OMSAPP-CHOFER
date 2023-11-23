@@ -34,7 +34,10 @@ const Login = () => {
       text2: "Ha iniciado sesión correctamente",
       visibilityTime: 1000,
       onHide: () => {
-        navigation.navigate("Main");
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'Main' }],
+        });
       },
     });
   };

@@ -17,42 +17,39 @@ hubConnection.onreconnected(() => {
 });
 
 export const sendRealtime = async (latitude : string | null, longitude : string | null, routeId : number, route: string, busId : string ) => {
-  try {
-    if (hubConnection.state === HubConnectionState.Disconnected) {
+  if (hubConnection.state === HubConnectionState.Disconnected) {
+    try {
       await hubConnection.start();
       console.log("Conexión iniciada");
+    } catch (error) {
+      console.error("Error al iniciar la conexión:", error);
     }
-    if (hubConnection.state === HubConnectionState.Connected) {
-      const message = `Latitud: ${latitude}, Longitud: ${longitude}, RouteId: ${routeId}, Route: ${route}, BusId: ${busId}`;
+  }
 
-      const coordenadasObj: Coordenadas = {
-        latitude: latitude || "",
-        longitude: longitude || "",
-        RouteId: routeId.toString(),
-        Route: route,
-        BusId: busId,
-        ConnectionId: "connection123",
-      };
-      console.log(coordenadasObj)
-      hubConnection
-        .invoke("SendMessageToB", coordenadasObj)
-        .then(() => {
-          console.log(`Coordenadas enviadas al servidor: ${coordenadasObj}`);
-        })
-        .catch((error) => {
-          console.error("Error al enviar las coordenadas:", error);
-        });
-    } else {
-      console.log("La conexión no está en el estado 'Connected'");
-    }
-  } catch (error) {
-    console.error("Error al iniciar la conexión:", error);
-    throw error;
+  if (hubConnection.state === HubConnectionState.Connected) {
+    const coordenadasObj: Coordenadas = {
+      latitude: latitude || "",
+      longitude: longitude || "",
+      RouteId: routeId.toString(),
+      Route: route,
+      BusId: busId,
+      ConnectionId: "connection123",
+    };
+
+    hubConnection
+      .invoke("SendMessageToB", coordenadasObj)
+      .then(() => {
+        console.log(`Coordenadas enviadas al servidor: ${coordenadasObj}`);
+      })
+      .catch((error) => {
+        console.error("Error al enviar las coordenadas:", error);
+      });
+  } else {
+    console.error("La conexión no se pudo establecer");
   }
 };
-
 export const stopRealtime = async () => {
-  if (hubConnection.state !== HubConnectionState.Disconnected) {
+  if (hubConnection.state === HubConnectionState.Connected) {
     const coordenadasObj: Coordenadas = {
       latitude: null,
       longitude: null ,
@@ -61,8 +58,13 @@ export const stopRealtime = async () => {
       BusId: null,
       ConnectionId: "connection123",
     };
-    await hubConnection.invoke("SendMessageToB", coordenadasObj).then()
-    await hubConnection.stop();
-    console.log("Conexión finalizada desde la Aplicación B");
+
+    try {
+      await hubConnection.invoke("SendMessageToB", coordenadasObj);
+      await hubConnection.stop();
+      console.log("Conexión finalizada desde la Aplicación B");
+    } catch (error) {
+      console.error("Error al enviar las coordenadas:", error);
+    }
   }
 };

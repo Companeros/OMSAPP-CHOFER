@@ -30,16 +30,15 @@ export const HomeScreen = () => {
       console.log(error.message);
       return;
     }
+    if (locations) {
+      // Haz algo con las ubicaciones capturadas
+      sendRealtime(encryptData(locations[0].coords.latitude), encryptData(locations[0].coords.longitude), info[0].routeId, info[0].bRouteDescription, info[0].busId)
+    }
      
-   
-       sendRealtime(encryptData(locations[0].coords.latitude), encryptData(locations[0].coords.longitude), info[0].routeId, info[0].bRouteDescription, info[0].busId)
-     
- 
-  
   });
 
   useEffect(() => {
-    fetchData(`/Assignment/GetInfoDriver`, { id: user.userinfo.id })
+    fetchData(`/Assignment/GetInfoDriver`, { id: user.userinfo.id });
   }, [])
   useEffect(() => {
     ToastStartBiffurc()
@@ -65,8 +64,6 @@ export const HomeScreen = () => {
       Type1= "success";
       title1 =  "Ha finalizado su turno";
       subtitle2="La transmisión de su localización ha sido concluido exitosamente";
-      stopLocation()
-        stopRealtime()
     }
      
 
@@ -152,6 +149,8 @@ try{
     ).catch(
       
     )
+    stopLocation()
+    stopRealtime()
   };
 
   return (
