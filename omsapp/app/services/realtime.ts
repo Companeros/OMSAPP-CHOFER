@@ -49,7 +49,7 @@ export const sendRealtime = async (latitude : string | null, longitude : string 
   }
 };
 export const stopRealtime = async () => {
-  if (hubConnection.state !== HubConnectionState.Disconnected) {
+  if (hubConnection.state === HubConnectionState.Connected) {
     const coordenadasObj: Coordenadas = {
       latitude: null,
       longitude: null ,
@@ -58,8 +58,13 @@ export const stopRealtime = async () => {
       BusId: null,
       ConnectionId: "connection123",
     };
-    await hubConnection.invoke("SendMessageToB", coordenadasObj).then()
-    await hubConnection.stop();
-    console.log("Conexión finalizada desde la Aplicación B");
+
+    try {
+      await hubConnection.invoke("SendMessageToB", coordenadasObj);
+      await hubConnection.stop();
+      console.log("Conexión finalizada desde la Aplicación B");
+    } catch (error) {
+      console.error("Error al enviar las coordenadas:", error);
+    }
   }
 };
